@@ -72,6 +72,8 @@ model User {
   conversationMembers ConversationMember[]
   messages           Message[]
   bugReports         BugReport[]
+  communitiesOwned   Community[]
+  reportsFiled       Report[]
 
   @@schema("commsunity")
 }
@@ -105,6 +107,46 @@ model Post {
   userId      String
   postLikes   PostLike[]
   comments    Comment[]
+  community   Community?    @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  communityId Int?
+  category    String?
+  reports     Report[]
+
+  @@schema("commsunity")
+}
+
+// S383b — multi-tenant communities (Johnny's We Expose Monsters, Rachel's
+// ArtWorks, and any future builder space). ONE codebase, ONE database — a
+// fix or feature here benefits every community at once, not N forks of it.
+model Community {
+  id           Int            @id @default(autoincrement())
+  slug         String         @unique
+  name         String
+  brandConfig  Json?
+  ownerUserId  String?
+  createdAt    DateTime       @default(now())
+  owner        User?          @relation(fields: [ownerUserId], references: [id])
+  posts        Post[]
+  conversations Conversation[]
+
+  @@schema("commsunity")
+}
+
+// Content/crisis safety reports — distinct from BugReport (app bugs). The
+// "step zero" safety gate before Johnny's survivor space carries real
+// disclosures: a report path that reaches a human, not just a delete button.
+model Report {
+  id         Int      @id @default(autoincrement())
+  post       Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId     Int?
+  comment    Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId  Int?
+  reporter   User?    @relation(fields: [reporterId], references: [id])
+  reporterId String?
+  reason     String
+  isUrgent   Boolean  @default(false)
+  status     String   @default("OPEN")
+  createdAt  DateTime @default(now())
 
   @@schema("commsunity")
 }
@@ -136,6 +178,7 @@ model Comment {
   parentId Int?
 
   replies Comment[] @relation("Replies")
+  reports Report[]
 
   @@schema("commsunity")
 }
@@ -191,6 +234,8 @@ model Conversation {
   createdById String?
   members     ConversationMember[]
   messages    Message[]
+  community   Community?           @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  communityId Int?
 
   @@schema("commsunity")
 }
