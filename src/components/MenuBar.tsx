@@ -128,7 +128,7 @@ export function MenuBar() {
               Coming Soon
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {['Room Files', 'Video', 'Actor Map', 'Playbook', 'BYOK AI'].map((label) => (
+              {['Room Files', 'Actor Map', 'Playbook', 'BYOK AI'].map((label) => (
                 <span
                   key={label}
                   className="rounded-full border border-border/20 px-2 py-0.5 text-[0.6rem] text-muted-foreground/25"

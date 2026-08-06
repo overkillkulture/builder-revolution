@@ -38,7 +38,8 @@ This is where you come in. Fork it, build a feature, submit a PR.
 | Feature | Difficulty | Impact |
 |---------|-----------|--------|
 | **Voice channels** (LiveKit — Xbox-style join/leave) | Medium | Huge |
-| **Video/screen share** (teaching mode) | Medium | Huge |
+| **Video calls** (Jitsi Meet — ✅ WORKING in rooms + /meet page) | Done | Huge |
+| **Screen share** (Jitsi has this — verify UX) | Easy | High |
 | **Image uploads** (Supabase Storage) | Easy | High |
 | **Real-time chat** (WebSocket, replace polling) | Medium | High |
 | **Mobile optimization** | Easy | High |
