@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
- * VideoRoom — Jitsi Meet embedded video conferencing via 8x8.vc.
+ * VideoRoom — Jitsi Meet embedded video conferencing via the public meet.jit.si server.
  * Each room gets a unique Jitsi room name based on the room/conversation ID.
  */
+
+// Public Jitsi Meet server. (The old jitsi.riot.im deployment was retired by Element.)
+const JITSI_DOMAIN = 'meet.jit.si';
 
 interface VideoRoomProps {
   roomId: string;
@@ -51,7 +54,7 @@ export function VideoRoom({ roomId, displayName, onClose }: VideoRoomProps) {
     }
 
     try {
-      const api = new (window as any).JitsiMeetExternalAPI('jitsi.riot.im', {
+      const api = new (window as any).JitsiMeetExternalAPI(JITSI_DOMAIN, {
         roomName: jitsiRoomName,
         parentNode: containerRef.current,
         width: '100%',
@@ -122,7 +125,7 @@ export function VideoRoom({ roomId, displayName, onClose }: VideoRoomProps) {
 
     const script = document.createElement('script');
     script.id = 'jitsi-api-script';
-    script.src = 'https://jitsi.riot.im/external_api.js';
+    script.src = `https://${JITSI_DOMAIN}/external_api.js`;
     script.async = true;
     script.onload = () => initJitsi();
     script.onerror = () => {

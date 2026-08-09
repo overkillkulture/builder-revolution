@@ -7,6 +7,7 @@
     "build": "prisma generate && prisma db push --accept-data-loss && next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
     "postinstall": "prisma generate",
     "svgr": "npx @svgr/cli --icon --no-prettier --out-dir ./src/svg_components --ignore-existing --typescript -- ./src/vectors && npx prettier ./src/svg_components --write",
     "prisma:deploy": "npx prisma migrate deploy",
