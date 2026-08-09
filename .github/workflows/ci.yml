@@ -1,0 +1,35 @@
+name: CI
+
+# Minimal PR gate for contributors. The blocking check is typecheck (no database
+# required). Lint runs for information only — the repo has pre-existing prettier drift,
+# so we don't fail a contributor's PR on formatting they didn't introduce.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # `npm ci` runs `prisma generate` via postinstall (reads schema only, no DB).
+      - name: Install dependencies
+        run: npm ci
+
+      # Blocking gate: types must be sound.
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Informational only — never blocks the PR.
+      - name: Lint (informational)
+        run: npm run lint
+        continue-on-error: true

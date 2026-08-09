@@ -15,7 +15,8 @@ import { useSearchParams } from 'next/navigation';
  */
 
 const DEFAULT_ROOM = 'lobby';
-const JITSI_DOMAIN = 'jitsi.riot.im';
+// Public Jitsi Meet server. (The old jitsi.riot.im deployment was retired by Element.)
+const JITSI_DOMAIN = 'meet.jit.si';
 
 export default function MeetPage() {
   const searchParams = useSearchParams();
