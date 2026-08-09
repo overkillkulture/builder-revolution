@@ -1,7 +1,13 @@
 # BLUEPRINT 03 — Per-Room File Sharing (Case Builder)
 
-**Status:** BONES ONLY — scaffold sketches, not built. Incoming devs build against this.
-**Author:** C1 Mechanic (S326)
+**Status:** BUILT (S425) — model + API + role gate shipped and typecheck-clean. Two deploy
+steps remain before it's live: (1) `prisma migrate` against the real DB, (2) create the
+PRIVATE `room-files` bucket in Supabase Storage. Code:
+`prisma/schema.prisma` (`RoomFile`), `src/lib/s3/roomFilesStorage.ts`,
+`src/lib/isValidRoomFileType.ts`, `src/lib/rooms/roomRoles.ts`,
+`src/app/api/rooms/[roomId]/files/{route.ts,[fileId]/route.ts}`. The sketch below is the
+original spec — the shipped code follows it (roles stored lowercase, minRole capped, etc.).
+**Author:** C1 Mechanic (S326) · Built C1 (S425)
 **Target repo:** `comms-unity` (Munia fork, Next.js 14 App Router + Prisma + Supabase)
 **Depends on:** the Owner/Admin/Builder/Member/Guest role model a sibling agent is defining (Blueprint 02 / room roles).
 

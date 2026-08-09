@@ -41,39 +41,40 @@ model Session {
 }
 
 model User {
-  id                 String     @id @default(cuid())
-  username           String?    @unique
-  email              String?    @unique
-  name               String?
-  gender             String?
-  birthDate          DateTime?
-  phoneNumber        String?
-  address            String?
-  bio                String?
-  website            String?
-  relationshipStatus String?
-  emailVerified      DateTime?
-  image              String?
-  accounts           Account[]
-  sessions           Session[]
-  profilePhoto       String?
-  coverPhoto         String?
-  post               Post[]
-  visualMedia        VisualMedia[]
-  postLikes          PostLike[]
-  comments           Comment[]
-  commentLikes       CommentLike[]
-  followers          Follow[]     @relation("following")
-  following          Follow[]     @relation("follower")
-  activities         Activity[]   @relation("activity")
-  notifications      Activity[]   @relation("notification")
-  skills             String?
-  portfolioLinks     PortfolioLink[]
+  id                  String               @id @default(cuid())
+  username            String?              @unique
+  email               String?              @unique
+  name                String?
+  gender              String?
+  birthDate           DateTime?
+  phoneNumber         String?
+  address             String?
+  bio                 String?
+  website             String?
+  relationshipStatus  String?
+  emailVerified       DateTime?
+  image               String?
+  accounts            Account[]
+  sessions            Session[]
+  profilePhoto        String?
+  coverPhoto          String?
+  post                Post[]
+  visualMedia         VisualMedia[]
+  postLikes           PostLike[]
+  comments            Comment[]
+  commentLikes        CommentLike[]
+  followers           Follow[]             @relation("following")
+  following           Follow[]             @relation("follower")
+  activities          Activity[]           @relation("activity")
+  notifications       Activity[]           @relation("notification")
+  skills              String?
+  portfolioLinks      PortfolioLink[]
   conversationMembers ConversationMember[]
-  messages           Message[]
-  bugReports         BugReport[]
-  communitiesOwned   Community[]
-  reportsFiled       Report[]
+  messages            Message[]
+  bugReports          BugReport[]
+  communitiesOwned    Community[]
+  reportsFiled        Report[]
+  uploadedRoomFiles   RoomFile[]
 
   @@schema("commsunity")
 }
@@ -119,14 +120,14 @@ model Post {
 // ArtWorks, and any future builder space). ONE codebase, ONE database — a
 // fix or feature here benefits every community at once, not N forks of it.
 model Community {
-  id           Int            @id @default(autoincrement())
-  slug         String         @unique
-  name         String
-  brandConfig  Json?
-  ownerUserId  String?
-  createdAt    DateTime       @default(now())
-  owner        User?          @relation(fields: [ownerUserId], references: [id])
-  posts        Post[]
+  id            Int            @id @default(autoincrement())
+  slug          String         @unique
+  name          String
+  brandConfig   Json?
+  ownerUserId   String?
+  createdAt     DateTime       @default(now())
+  owner         User?          @relation(fields: [ownerUserId], references: [id])
+  posts         Post[]
   conversations Conversation[]
 
   @@schema("commsunity")
@@ -227,7 +228,7 @@ model Activity {
 model Conversation {
   id          Int                  @id @default(autoincrement())
   name        String?
-  type        String  @default("DM")
+  type        String               @default("DM")
   description String?
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
@@ -236,7 +237,37 @@ model Conversation {
   messages    Message[]
   community   Community?           @relation(fields: [communityId], references: [id], onDelete: SetNull)
   communityId Int?
+  roomFiles   RoomFile[]
 
+  @@schema("commsunity")
+}
+
+// Room-scoped shared file — the "Build Guild" file drop. One file pinned to a room
+// (conversationId), pointing at a private-bucket storage key (never the bytes in the DB).
+// Every read/write filters on conversationId FIRST, then checks the caller's room role
+// against minRole. See BLUEPRINTS/03_ROOM_FILE_SHARING.md.
+model RoomFile {
+  id             Int          @id @default(autoincrement())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId Int
+  uploader       User?        @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
+  uploaderId     String?
+
+  // Storage pointer (mirror VisualMedia: DB stores the key, not the bytes)
+  storageKey String // "room-123/1720000000-uuid.pdf" — path inside the private bucket
+  fileName   String // original display name, e.g. "Motion_to_Dismiss.pdf"
+  mimeType   String
+  sizeBytes  Int
+
+  category String @default("DOCUMENT") // DOCUMENT | EVIDENCE | ASSET | OTHER
+  // Minimum room role required to VIEW/DOWNLOAD. Uploader + admin/owner always see it.
+  minRole  String @default("member") // owner | admin | builder | member | guest
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([conversationId])
+  @@index([conversationId, category])
   @@schema("commsunity")
 }
 
@@ -267,11 +298,11 @@ model Message {
 }
 
 model PortfolioLink {
-  id          Int    @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   title       String
   url         String
   description String?
-  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
 
   @@schema("commsunity")
