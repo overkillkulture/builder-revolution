@@ -4,6 +4,16 @@ import authConfig from '@/auth.config';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import prisma from '@/lib/prisma/prisma';
 
+// S432 BG-5 step 1 (identity bridge) — the main site (100xbuilder.io) issues
+// Supabase Auth sessions; this app has its own separate login. A builder
+// arriving here from the main site carries their Supabase access token, and
+// this endpoint is the SAME verification every main-site Netlify function
+// already does (dm-api.mjs, push-api.mjs: GET /auth/v1/user). Public/anon
+// key only — safe to ship, it can only ask "whose token is this?", not act
+// as that user.
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://lgibygzcbvrrykfaxvbg.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_MZ5nb_Ha-F1_iZWj54a8pw_yGw9eXeV';
+
 declare module 'next-auth' {
   interface Session {
     user: { id: string; name: string };
@@ -57,6 +67,39 @@ export const {
               name: isEmail ? email.split('@')[0] : input,
               email,
             },
+          });
+        }
+
+        return { id: user.id, name: user.name, email: user.email };
+      },
+    }),
+    // S432 BG-5 step 1 — silent sign-in for a builder who's already signed in
+    // on the main site. Identity comes ONLY from Supabase's verified answer,
+    // never from a client-claimed email (mirrors the main site's own rule).
+    Credentials({
+      id: 'supabase-bridge',
+      name: 'Supabase Bridge',
+      credentials: {
+        token: { label: 'Supabase token', type: 'text' },
+      },
+      async authorize(credentials) {
+        const token = credentials?.token as string;
+        if (!token) return null;
+
+        const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+          headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY },
+        });
+        if (!res.ok) return null;
+        const sbUser = await res.json();
+        const email = (sbUser?.email || '').toLowerCase();
+        if (!email) return null;
+
+        let user = await prisma.user.findFirst({ where: { email } });
+        if (!user) {
+          const localPart = email.split('@')[0].replace(/[^a-z0-9-]/g, '') || 'builder';
+          const fullName = sbUser?.user_metadata?.full_name || sbUser?.user_metadata?.display_name || localPart;
+          user = await prisma.user.create({
+            data: { username: localPart, name: fullName, email },
           });
         }
 
