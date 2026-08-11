@@ -17,7 +17,7 @@ export function UserAuthForm({ mode }: { mode: 'login' | 'register' }) {
   });
   const areButtonsDisabled = loading.quickEntry || loading.github || loading.google;
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('from') || (process.env.NEXT_PUBLIC_INVITE_ONLY === 'true' ? '/messages' : '/feed');
+  const callbackUrl = searchParams.get('from') || '/main';
   const { showToast } = useToast();
 
   const onNameChange = useCallback((text: string) => {

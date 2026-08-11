@@ -62,7 +62,7 @@ interface RoomData {
   hasUnread: boolean;
 }
 
-export function MessagesClient({ userId }: { userId: string }) {
+export function MessagesClient({ userId, embedded = false }: { userId: string; embedded?: boolean }) {
   const [conversations, setConversations] = useState<ConversationData[]>([]);
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const [activeConv, setActiveConv] = useState<number | null>(null);
@@ -194,8 +194,8 @@ export function MessagesClient({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="px-4 pt-4">
-      <h1 className="mb-4 text-4xl font-bold">Messages</h1>
+    <div className={embedded ? '' : 'px-4 pt-4'}>
+      {!embedded && <h1 className="mb-4 text-4xl font-bold">Messages</h1>}
       <div
         style={{
           height: 'calc(100vh - 160px)',

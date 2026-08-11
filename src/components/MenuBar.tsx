@@ -1,6 +1,6 @@
 'use client';
 
-import { ActionsPlus, Feather, GridFeedCards, LogInSquare, LogOutCircle, Mail, NotificationBell, Profile, Search } from '@/svg_components';
+import { ActionsPlus, Comment, Feather, GridFeedCards, LogInSquare, LogOutCircle, Mail, NotificationBell, Profile, Search } from '@/svg_components';
 import { useSessionUserData } from '@/hooks/useSessionUserData';
 import { useNotificationsCountQuery } from '@/hooks/queries/useNotificationsCountQuery';
 import { useCreatePostModal } from '@/hooks/useCreatePostModal';
@@ -24,9 +24,9 @@ export function MenuBar() {
   // Mobile bottom bar: always exactly 5 items
   const mobileItems = isLoggedIn
     ? [
-        { title: 'Feed', Icon: GridFeedCards, route: '/feed' },
+        { title: 'Main', Icon: Comment, route: '/main' },
         { title: 'Discover', Icon: Search, route: '/discover' },
-        { title: 'Messages', Icon: Mail, route: '/messages' },
+        { title: 'Feed', Icon: GridFeedCards, route: '/feed' },
         { title: 'Notifications', Icon: NotificationBell, route: '/notifications', badge: notificationCount },
         { title: 'Profile', Icon: Profile, route: `/${username}` },
       ]
@@ -38,6 +38,7 @@ export function MenuBar() {
 
   // Desktop sidebar: full menu
   const desktopItems = [
+    ...(isLoggedIn ? [{ title: 'Main', Icon: Comment, route: '/main' }] : []),
     { title: 'Feed', Icon: GridFeedCards, route: '/feed' },
     { title: 'Discover', Icon: Search, route: '/discover' },
     ...(isLoggedIn
@@ -65,7 +66,7 @@ export function MenuBar() {
 
       {/* Desktop sidebar */}
       <div className="hidden md:sticky md:top-0 md:flex md:h-screen md:w-[200px] md:flex-shrink-0 md:flex-col md:items-start md:overflow-y-auto md:border-r md:border-border/20 md:p-3">
-        <Link href="/feed" title="Home" className="mb-1 flex items-center gap-2">
+        <Link href={isLoggedIn ? '/main' : '/feed'} title="Home" className="mb-1 flex items-center gap-2">
           <Feather className="h-8 w-8 stroke-primary" />
           <LogoText className="text-xl" />
         </Link>

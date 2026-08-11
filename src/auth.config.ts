@@ -23,7 +23,7 @@ export default {
         // INVITE-ONLY MODE — everything is locked except login page, /meet, and API/assets
         if (isApiRoute || isStaticAsset || pathname === '/terms' || isPublicRoute) return true;
         if (isOnAuthPage) {
-          if (isLoggedIn) return NextResponse.redirect(new URL('/messages', nextUrl));
+          if (isLoggedIn) return NextResponse.redirect(new URL('/main', nextUrl));
           return true;
         }
         // Not logged in → go to login (one click, no feed browsing)
@@ -35,11 +35,11 @@ export default {
       }
 
       // OPEN COMMUNITY — let people browse without logging in
-      const protectedPages = ['/setup', '/edit-profile', '/messages', '/notifications'];
+      const protectedPages = ['/setup', '/edit-profile', '/messages', '/notifications', '/main'];
       const isProtectedPage = protectedPages.some((page) => pathname.startsWith(page));
 
       if (isOnAuthPage) {
-        if (isLoggedIn) return NextResponse.redirect(new URL('/feed', nextUrl));
+        if (isLoggedIn) return NextResponse.redirect(new URL('/main', nextUrl));
       } else if (isProtectedPage) {
         if (!isLoggedIn) {
           const from = encodeURIComponent(pathname + search);
