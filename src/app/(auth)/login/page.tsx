@@ -1,4 +1,5 @@
 import { UserAuthForm } from '../UserAuthForm';
+import { SupabaseBridge } from '../SupabaseBridge';
 import { InviteOnlyBanner } from './InviteOnlyBanner';
 
 const instanceName = process.env.INSTANCE_NAME || 'Sovereign Server';
@@ -55,6 +56,7 @@ export default function Page() {
       </div>
 
       <InviteOnlyBanner />
+      <SupabaseBridge />
       <UserAuthForm mode="login" />
 
       <p className="mt-4 text-center text-xs text-muted-foreground">
