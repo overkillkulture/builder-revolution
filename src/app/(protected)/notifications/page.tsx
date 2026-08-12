@@ -2,7 +2,7 @@ import { getServerUser } from '@/lib/getServerUser';
 import { Notifications } from './Notifications';
 
 export const metadata = {
-  title: 'Case Builder HQ | Notifications',
+  title: 'Builder Revolution Chat | Notifications',
 };
 
 export default async function Page() {

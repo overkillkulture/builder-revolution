@@ -6,7 +6,7 @@ import { CommunityBrandConfig } from '@/types/community';
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const community = await prisma.community.findUnique({ where: { slug: params.slug }, select: { name: true } });
-  return { title: community ? `${community.name} | Case Builder HQ` : 'Community' };
+  return { title: community ? `${community.name} | Builder Revolution Chat` : 'Community' };
 }
 
 export default async function Page({ params }: { params: { slug: string } }) {

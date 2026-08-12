@@ -3,7 +3,7 @@ import { DiscoverProfiles } from '@/components/DiscoverProfiles';
 import { DiscoverSearch } from '@/components/DiscoverSearch';
 
 export const metadata = {
-  title: 'Case Builder HQ | Discover',
+  title: 'Builder Revolution Chat | Discover',
 };
 
 export default async function Discover() {

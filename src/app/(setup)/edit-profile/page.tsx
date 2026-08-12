@@ -2,7 +2,7 @@ import { EditProfileForm } from '@/components/EditProfileForm';
 import { ResponsiveContainer } from '@/components/ui/ResponsiveContainer';
 
 export const metadata = {
-  title: 'Case Builder HQ | Edit Profile',
+  title: 'Builder Revolution Chat | Edit Profile',
 };
 
 export default function Page() {

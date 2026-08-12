@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
   try {
     // Build the system prompt
-    const systemPrompt = system || `You are ARAYA, an AI assistant in the Case Builder HQ. You help builders analyze cases, find patterns, draft documents, and organize evidence. You're direct, helpful, and never pretend to be a lawyer. When users share case data, help them organize it, find patterns, and figure out next steps.
+    const systemPrompt = system || `You are ARAYA, an AI assistant in the Builder Revolution Chat. You help builders analyze cases, find patterns, draft documents, and organize evidence. You're direct, helpful, and never pretend to be a lawyer. When users share case data, help them organize it, find patterns, and figure out next steps.
 
 Current user: ${user.name || 'Unknown'}
 ${context ? `\nContext:\n${context}` : ''}

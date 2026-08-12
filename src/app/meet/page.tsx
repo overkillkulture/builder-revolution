@@ -174,7 +174,7 @@ export default function MeetPage() {
           <div className="flex items-center gap-2">
             <span className="text-lg">📹</span>
             <span className="text-sm font-semibold" style={{ color: '#2ecc71' }}>
-              Case Builder HQ
+              Builder Revolution Chat
             </span>
             <span className="text-xs" style={{ color: '#666' }}>
               #{roomParam}
@@ -233,7 +233,7 @@ export default function MeetPage() {
             📹
           </div>
           <h1 className="text-2xl font-bold" style={{ color: '#fff' }}>
-            Case Builder HQ
+            Builder Revolution Chat
           </h1>
           <p className="mt-1 text-sm" style={{ color: '#888' }}>
             Join the meeting — no account required

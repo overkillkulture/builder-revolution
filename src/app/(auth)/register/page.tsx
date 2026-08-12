@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { UserAuthForm } from '../UserAuthForm';
 
 export const metadata = {
-  title: 'Case Builder HQ | Register',
+  title: 'Builder Revolution Chat | Register',
 };
 
 export default function Page() {

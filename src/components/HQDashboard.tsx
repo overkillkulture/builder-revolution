@@ -3,7 +3,7 @@
 import { VideoRoomButton } from './VideoRoom';
 
 /**
- * HQ Dashboard — The first thing builders see inside Case Builder HQ.
+ * HQ Dashboard — The first thing builders see inside Builder Revolution Chat.
  * Action cards for pattern recognition tools, learning, and collaboration.
  */
 
@@ -78,7 +78,7 @@ export function HQDashboard() {
       {/* Welcome banner */}
       <div className="rounded-xl border border-primary/10 bg-gradient-to-br from-card to-primary/[0.03] px-5 py-4">
         <h2 className="mb-1 text-lg font-bold text-foreground">
-          Case Builder HQ
+          Builder Revolution Chat
         </h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
           Build pattern recognition systems. Upload evidence, find what repeats across cases, coordinate strategy, and file with the court — together.

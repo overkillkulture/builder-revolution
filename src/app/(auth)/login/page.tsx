@@ -2,11 +2,11 @@ import { UserAuthForm } from '../UserAuthForm';
 import { SupabaseBridge } from '../SupabaseBridge';
 import { InviteOnlyBanner } from './InviteOnlyBanner';
 
-const instanceName = process.env.INSTANCE_NAME || 'Sovereign Server';
+const instanceName = process.env.INSTANCE_NAME || 'Builder Revolution Chat';
 const isHQ = process.env.INVITE_ONLY === 'true';
 
 export const metadata = {
-  title: isHQ ? 'Case Builder HQ — Join' : `${instanceName} — Join`,
+  title: isHQ ? 'Builder Revolution Chat — Join' : `${instanceName} — Join`,
 };
 
 export default function Page() {
@@ -16,7 +16,7 @@ export default function Page() {
       <div className="mb-6 text-center">
         {isHQ ? (
           <div className="mb-1 text-4xl font-bold text-primary">
-            Case Builder<span className="text-foreground/40 text-2xl ml-1">HQ</span>
+            Builder Revolution<span className="text-foreground/40 text-2xl ml-1">Chat</span>
           </div>
         ) : (
           <div className="mb-1 text-4xl font-bold text-primary">
@@ -24,7 +24,7 @@ export default function Page() {
           </div>
         )}
         <p className="text-[0.6rem] tracking-[0.2em] text-muted-foreground/40">
-          {isHQ ? 'PATTERN RECOGNITION FOR LEGAL SELF-DEFENSE' : 'BUILDER REVOLUTION CHAT'}
+          {isHQ ? 'THE MAIN CHAT — BUILD GUILD · CASE BUILDER · BUILDER REVOLUTION' : 'BUILDER REVOLUTION CHAT'}
         </p>
       </div>
 
@@ -32,7 +32,7 @@ export default function Page() {
       <div className="mb-6 rounded-lg border border-primary/15 bg-card p-4 text-center">
         <p className="text-sm leading-relaxed text-card-foreground">
           {isHQ
-            ? 'Open source tools for people fighting cases. Upload evidence, find patterns across cases, coordinate strategy, and file with the court — together.'
+            ? 'The main chat of the Builder Revolution. Rooms for builders, case fighters, and everyone in between — say what you\'re building, claim a work order, ship it, and post the evidence back to the room.'
             : 'The developer hall of the Builder Revolution. Say what you\'re building, claim a work order, ship it, and post the evidence back to the room.'}
         </p>
       </div>

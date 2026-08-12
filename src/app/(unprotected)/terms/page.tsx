@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Case Builder HQ | Terms of Service',
+  title: 'Builder Revolution Chat | Terms of Service',
 };
 
 export default function Page() {
@@ -13,7 +13,7 @@ export default function Page() {
         <section>
           <h2>1. This is a Builder Community</h2>
           <p>
-            Case Builder HQ is part of the Consciousness Revolution platform. We exist to help builders
+            Builder Revolution Chat is part of the Consciousness Revolution platform. We exist to help builders
             connect, share work, and level up. By using this platform you agree to these terms.
           </p>
         </section>
@@ -38,7 +38,7 @@ export default function Page() {
         <section>
           <h2>3. Your Data &amp; How We Use It</h2>
           <p>
-            By using Case Builder HQ, you grant us a worldwide, royalty-free, non-exclusive license to use,
+            By using Builder Revolution Chat, you grant us a worldwide, royalty-free, non-exclusive license to use,
             display, reproduce, modify, and distribute any content you post — including but not limited to:
           </p>
           <ul className="ml-4 mt-2 list-disc">

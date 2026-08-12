@@ -6,7 +6,7 @@ import { getProfile } from '../getProfile';
 export async function generateMetadata({ params }: { params: { username: string } }) {
   const profile = await getProfile(params.username);
   return {
-    title: profile?.name || 'Case Builder HQ',
+    title: profile?.name || 'Builder Revolution Chat',
   };
 }
 

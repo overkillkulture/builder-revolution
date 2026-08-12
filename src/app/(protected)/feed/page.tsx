@@ -7,7 +7,7 @@ import { ThemeSwitch } from '@/components/ui/ThemeSwitch';
 import { getServerUser } from '@/lib/getServerUser';
 
 export const metadata = {
-  title: 'Case Builder HQ | Feed',
+  title: 'Builder Revolution Chat | Feed',
 };
 
 export default async function Page() {

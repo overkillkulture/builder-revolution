@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Discover Filters — Case Builder HQ
+ * Discover Filters — Builder Revolution Chat
  * Replaces the dating-app gender/status filters with useful builder filters.
  * These are cosmetic for now — will wire to real data when skills are structured.
  */

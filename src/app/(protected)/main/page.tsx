@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { MainViewClient } from './MainViewClient';
 
 export const metadata = {
-  title: 'Case Builder HQ | Main',
+  title: 'Builder Revolution Chat | Main',
 };
 
 export default async function Page() {

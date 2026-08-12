@@ -2,7 +2,7 @@ import { cn } from '@/lib/cn';
 import React from 'react';
 
 // NEXT_PUBLIC_* so the name survives into client components; server-only vars as fallback.
-const instanceName = process.env.NEXT_PUBLIC_INSTANCE_NAME || process.env.INSTANCE_NAME || 'Sovereign Server';
+const instanceName = process.env.NEXT_PUBLIC_INSTANCE_NAME || process.env.INSTANCE_NAME || 'Builder Revolution Chat';
 const isHQ = process.env.NEXT_PUBLIC_INVITE_ONLY === 'true' || process.env.INVITE_ONLY === 'true';
 
 interface LogoTextProps extends React.HTMLAttributes<HTMLHeadElement> {}

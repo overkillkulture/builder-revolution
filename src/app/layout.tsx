@@ -16,25 +16,25 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: 'Case Builder HQ — Sovereign Server',
-  description: 'Secure workspace for case builders. Upload evidence. Find patterns. File with the court. Powered by Sovereign Server.',
+  title: 'Builder Revolution Chat',
+  description: 'The chat home of the Builder Revolution — Build Guild, Case Builder, and every builder room in one place.',
   openGraph: {
-    title: 'Case Builder HQ',
-    description: 'Secure workspace for case builders. AI-powered pattern recognition, evidence management, and court filing tools.',
-    siteName: 'Sovereign Server',
+    title: 'Builder Revolution Chat',
+    description: 'The chat home of the Builder Revolution — Build Guild, Case Builder, and every builder room in one place.',
+    siteName: 'Builder Revolution Chat',
     type: 'website',
     images: [
       {
         url: 'https://conciousnessrevolution.io/images/og-case-builder-hq.png',
         width: 1200,
         height: 630,
-        alt: 'Case Builder HQ — Sovereign Server',
+        alt: 'Builder Revolution Chat',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Case Builder HQ — Sovereign Server',
+    title: 'Builder Revolution Chat',
     description: 'Secure workspace for case builders. AI crunch engine, pattern library, private rooms.',
     images: ['https://conciousnessrevolution.io/images/og-case-builder-hq.png'],
   },
