@@ -10,6 +10,8 @@ import { LogoText } from './LogoText';
 import { MenuBarItem } from './MenuBarItem';
 import { VideoRoomButton } from './VideoRoom';
 
+const isHQ = process.env.NEXT_PUBLIC_INVITE_ONLY === 'true';
+
 export function MenuBar() {
   const [user] = useSessionUserData();
   const isLoggedIn = !!user;
@@ -71,7 +73,7 @@ export function MenuBar() {
           <LogoText className="text-xl" />
         </Link>
         <div className="mb-2 px-1 text-[0.5rem] font-medium tracking-[0.2em] text-muted-foreground/30">
-          CASE BUILDER HQ
+          {isHQ ? 'CASE BUILDER HQ' : 'BUILDER REVOLUTION'}
         </div>
         {desktopItems.map((item) => (
           <MenuBarItem key={item.title} {...item}>
@@ -89,19 +91,19 @@ export function MenuBar() {
           </button>
         )}
 
-        {/* HQ TOOLS — Case Builder Toolkit */}
+        {/* TOOLS — Video Room for everyone; the Case Builder toolkit only on the HQ instance */}
         <div className="mt-4 w-full overflow-y-auto border-t border-border/20 pt-3" style={{ maxHeight: 'calc(100vh - 420px)' }}>
           <div className="mb-2 px-4 text-[0.6rem] font-bold uppercase tracking-[0.15em] text-emerald-500/60">
-            HQ Tools
+            {isHQ ? 'HQ Tools' : 'Tools'}
           </div>
           <div className="mb-2 px-4">
             <VideoRoomButton
-              roomId="hq-lobby"
+              roomId={isHQ ? 'hq-lobby' : 'build-guild'}
               label="Video Room"
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500/15 px-3 py-2 text-sm font-bold text-emerald-400 transition-colors hover:bg-emerald-500/25"
             />
           </div>
-          {[
+          {isHQ && [
             { emoji: '⚡', label: 'ARAYA', href: 'https://conciousnessrevolution.io/araya-chat.html', live: true },
             { emoji: '🧠', label: 'Case Crunch', href: 'https://conciousnessrevolution.io/guardian/case-crunch.html', live: true },
             { emoji: '📸', label: 'Evidence Snap', href: 'https://conciousnessrevolution.io/guardian/evidence-snap.html', live: true },
@@ -124,6 +126,7 @@ export function MenuBar() {
           ))}
 
           {/* COMING SOON — compact row */}
+          {isHQ && (
           <div className="mt-2 border-t border-border/10 px-4 pt-2">
             <div className="mb-1.5 text-[0.55rem] font-bold uppercase tracking-[0.15em] text-muted-foreground/30">
               Coming Soon
@@ -139,15 +142,16 @@ export function MenuBar() {
               ))}
             </div>
           </div>
+          )}
         </div>
 
         <a
-          href="https://conciousnessrevolution.io"
+          href="https://100xbuilder.io"
           target="_blank"
           rel="noopener noreferrer"
           className="mt-auto flex flex-col rounded-lg px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-primary-accent/30 hover:text-foreground"
         >
-          <span className="text-[0.5rem] tracking-[0.15em] text-muted-foreground/30">CONSCIOUSNESS REVOLUTION</span>
+          <span className="text-[0.5rem] tracking-[0.15em] text-muted-foreground/30">100X BUILDER</span>
           <span>← Main Site</span>
         </a>
       </div>
