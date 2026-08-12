@@ -24,7 +24,7 @@ export default function Page() {
           </div>
         )}
         <p className="text-[0.6rem] tracking-[0.2em] text-muted-foreground/40">
-          {isHQ ? 'PATTERN RECOGNITION FOR LEGAL SELF-DEFENSE' : 'SOVEREIGN SERVER'}
+          {isHQ ? 'PATTERN RECOGNITION FOR LEGAL SELF-DEFENSE' : 'BUILDER REVOLUTION CHAT'}
         </p>
       </div>
 
@@ -33,7 +33,7 @@ export default function Page() {
         <p className="text-sm leading-relaxed text-card-foreground">
           {isHQ
             ? 'Open source tools for people fighting cases. Upload evidence, find patterns across cases, coordinate strategy, and file with the court — together.'
-            : 'Open workspace for builders. Post what you\'re building. Find people who build what you need. Fork it, break it, make it better.'}
+            : 'The developer hall of the Builder Revolution. Say what you\'re building, claim a work order, ship it, and post the evidence back to the room.'}
         </p>
       </div>
 
@@ -48,8 +48,9 @@ export default function Page() {
           </>
         ) : (
           <>
-            <span className="rounded-full border border-primary/20 px-2.5 py-1 text-primary">Social Feed</span>
+            <span className="rounded-full border border-primary/20 px-2.5 py-1 text-primary">Rooms</span>
             <span className="rounded-full border border-purple-400/20 px-2.5 py-1 text-purple-400">Direct Messages</span>
+            <span className="rounded-full border border-emerald-400/20 px-2.5 py-1 text-emerald-400">Video Rooms</span>
             <span className="rounded-full border border-foreground/20 px-2.5 py-1">Open Source</span>
           </>
         )}

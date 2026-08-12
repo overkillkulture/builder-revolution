@@ -4,7 +4,10 @@
  * This ensures /api/* calls work whether basePath is '/hq' or '/'.
  */
 
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+// A base path is only valid if it starts with '/'. Anything else ('none', garbage)
+// becomes a RELATIVE url and 404s every API call from nested routes like /community/[slug].
+const raw = process.env.NEXT_PUBLIC_BASE_PATH || '';
+const basePath = raw.startsWith('/') ? raw.replace(/\/+$/, '') : '';
 
 export function apiUrl(path: string): string {
   // Already has basePath prefix — don't double-prefix
