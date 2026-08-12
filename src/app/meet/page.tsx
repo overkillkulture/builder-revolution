@@ -27,6 +27,7 @@ export default function MeetPage() {
   const [joined, setJoined] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<any>(null);
 
@@ -47,6 +48,18 @@ export default function MeetPage() {
     setLoading(false);
     setError(null);
   }, []);
+
+  const handleCopyInvite = useCallback(async () => {
+    try {
+      const inviteUrl = new URL('/meet', window.location.origin);
+      inviteUrl.searchParams.set('room', roomParam);
+      await navigator.clipboard.writeText(inviteUrl.toString());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (_) {
+      return;
+    }
+  }, [roomParam]);
 
   // Escape key to leave
   useEffect(() => {
@@ -185,13 +198,23 @@ export default function MeetPage() {
               </span>
             )}
           </div>
-          <button
-            onClick={handleLeave}
-            className="rounded-lg px-4 py-2 text-sm font-bold text-white transition-colors hover:opacity-80"
-            style={{ background: 'rgba(231,76,60,0.8)' }}
-          >
-            Leave
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCopyInvite}
+              className="rounded-lg px-4 py-2 text-sm font-bold text-white transition-colors hover:opacity-80"
+              style={{ background: 'rgba(46,204,113,0.8)' }}
+            >
+              {copied ? 'Copied!' : 'Copy invite link'}
+            </button>
+            <button
+              onClick={handleLeave}
+              className="rounded-lg px-4 py-2 text-sm font-bold text-white transition-colors hover:opacity-80"
+              style={{ background: 'rgba(231,76,60,0.8)' }}
+            >
+              Leave
+            </button>
+          </div>
         </div>
 
         {/* Error state */}
