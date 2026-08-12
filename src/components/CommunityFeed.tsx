@@ -88,13 +88,21 @@ export function CommunityFeed({
         ))}
       </div>
 
-      {canPost && (
+      {canPost ? (
         <CommunityCreatePost
           slug={slug}
           brand={brand}
           defaultCategory={category !== ALL ? category : undefined}
           onCreated={handleCreated}
         />
+      ) : (
+        <a
+          href={`/login?from=/community/${slug}`}
+          className="block rounded-xl p-4 text-center text-sm font-semibold"
+          style={{ background: brand.accent, color: brand.bg, border: `1px solid ${brand.line}` }}
+        >
+          Sign in to join the conversation →
+        </a>
       )}
 
       {isLoading ? (
