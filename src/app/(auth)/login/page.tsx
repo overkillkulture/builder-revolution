@@ -1,3 +1,7 @@
+import { redirect } from 'next/navigation';
+
+import { auth } from '@/auth';
+
 import { UserAuthForm } from '../UserAuthForm';
 import { SupabaseBridge } from '../SupabaseBridge';
 import { InviteOnlyBanner } from './InviteOnlyBanner';
@@ -9,7 +13,23 @@ export const metadata = {
   title: isHQ ? 'Builder Revolution Chat — Join' : `${instanceName} — Join`,
 };
 
-export default function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams?: { from?: string };
+}) {
+  // S437 (Commander: "makes me sign in every single time"): an already-signed-in
+  // user landing on /login (every main-site door routes through here) goes
+  // straight to their destination instead of seeing the form again.
+  const session = await auth();
+  if (session?.user) {
+    const from = searchParams?.from;
+    redirect(from && from.startsWith('/') ? from : '/feed');
+  }
+  return page();
+}
+
+function page() {
   return (
     <>
       {/* Logo / Brand */}

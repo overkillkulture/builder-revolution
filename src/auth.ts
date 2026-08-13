@@ -110,6 +110,10 @@ export const {
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: 'jwt',
+    // S437 (Commander: "makes me sign in every single time"): sessions live 90
+    // days and refresh daily — the front door stays open once you're through it.
+    maxAge: 60 * 60 * 24 * 90,
+    updateAge: 60 * 60 * 24,
   },
   callbacks: {
     ...authConfig.callbacks,
