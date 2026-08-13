@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { VideoRoomButton } from '@/components/VideoRoom';
 
 interface BoardCard {
   id: string;
@@ -17,8 +18,21 @@ interface BoardColumn {
   cards: BoardCard[];
 }
 
+interface BuilderIdentity {
+  username?: string | null;
+  name?: string | null;
+  email?: string | null;
+}
+
 const BOARD_FEED_URL = 'https://100xbuilder.io/.netlify/functions/board-feed?group=list';
 const BOARD_HOME_URL = 'https://100xbuilder.io/dev-board.html';
+
+// The real builder tools this room houses. Every URL verified 200 (S436).
+const ABILITIES: { emoji: string; label: string; href: string }[] = [
+  { emoji: '🚀', label: 'Dev Pack', href: 'https://100xbuilder.io/dev-pack-guide.html' },
+  { emoji: '📋', label: 'Claim Work', href: 'https://100xbuilder.io/dev-board.html' },
+  { emoji: '⚡', label: 'ARAYA', href: 'https://100xbuilder.io/araya-chat.html' },
+];
 
 // Lanes builders care about first; everything else follows, alphabetically.
 const LANE_PRIORITY = ['buildguild', 'PUBLIC'];
@@ -29,7 +43,75 @@ const STATUS_DOT: Record<BoardCard['status'], string> = {
   done: 'rgba(255,255,255,0.25)',
 };
 
-export function WorkOrdersRail() {
+// Build lowercased identity tokens (username / name / email local-part).
+// Short tokens are dropped to avoid false matches on owner strings.
+function buildTokens(identity: BuilderIdentity): string[] {
+  const raw: string[] = [];
+  if (identity.username) raw.push(identity.username);
+  if (identity.name) raw.push(identity.name);
+  if (identity.email) raw.push(identity.email.split('@')[0]);
+  return Array.from(
+    new Set(
+      raw
+        .map((t) => t.trim().toLowerCase())
+        .filter((t) => t.length >= 3),
+    ),
+  );
+}
+
+// Best-effort, case-insensitive owner match. Full identity bridge is BG-5.
+function ownerMatches(owner: string, tokens: string[]): boolean {
+  const o = (owner || '').trim().toLowerCase();
+  if (!o || tokens.length === 0) return false;
+  return tokens.some((t) => o === t || o.includes(t) || t.includes(o));
+}
+
+function CardLink({ card }: { card: BoardCard }) {
+  return (
+    <a
+      href={BOARD_HOME_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={card.title}
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '8px',
+        padding: '6px 14px 6px 20px',
+        fontSize: '0.78rem',
+        color: '#c8dcd4',
+        textDecoration: 'none',
+        lineHeight: 1.3,
+      }}
+    >
+      <span
+        style={{
+          marginTop: '5px',
+          width: '6px',
+          height: '6px',
+          borderRadius: '50%',
+          background: STATUS_DOT[card.status],
+          flexShrink: 0,
+        }}
+      />
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+        {card.title}
+      </span>
+    </a>
+  );
+}
+
+const SECTION_LABEL: React.CSSProperties = {
+  padding: '12px 14px',
+  borderBottom: '1px solid rgba(0,230,150,0.1)',
+  fontSize: '0.65rem',
+  letterSpacing: '1.5px',
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  color: '#8ca59b',
+};
+
+export function WorkOrdersRail(identity: BuilderIdentity = {}) {
   const [columns, setColumns] = useState<BoardColumn[] | null>(null);
   const [error, setError] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set(LANE_PRIORITY));
@@ -56,6 +138,23 @@ export function WorkOrdersRail() {
     return () => { cancelled = true; };
   }, []);
 
+  const tokens = useMemo(() => buildTokens(identity), [identity.username, identity.name, identity.email]);
+
+  const yourCards = useMemo(() => {
+    if (!columns || tokens.length === 0) return [];
+    const seen = new Set<string>();
+    const mine: BoardCard[] = [];
+    for (const col of columns) {
+      for (const card of col.cards) {
+        if (ownerMatches(card.owner, tokens) && !seen.has(card.id)) {
+          seen.add(card.id);
+          mine.push(card);
+        }
+      }
+    }
+    return mine;
+  }, [columns, tokens]);
+
   const toggleLane = (key: string) => {
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -74,19 +173,57 @@ export function WorkOrdersRail() {
         height: 'calc(100vh - 160px)',
       }}
     >
-      <div
-        style={{
-          padding: '12px 14px',
-          borderBottom: '1px solid rgba(0,230,150,0.1)',
-          fontSize: '0.65rem',
-          letterSpacing: '1.5px',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          color: '#8ca59b',
-        }}
-      >
-        Work Orders
+      {/* ── GUILD ABILITIES: house the tools, not just the work orders ── */}
+      <div style={SECTION_LABEL}>Guild Abilities</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '12px 14px' }}>
+        {ABILITIES.map((a) => (
+          <a
+            key={a.label}
+            href={a.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              padding: '8px 6px',
+              borderRadius: '8px',
+              background: 'rgba(0,230,150,0.08)',
+              border: '1px solid rgba(0,230,150,0.18)',
+              color: '#8fe9c4',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            <span>{a.emoji}</span>
+            <span>{a.label}</span>
+          </a>
+        ))}
+        <VideoRoomButton
+          roomId="build-guild"
+          label="Video Room"
+          className="flex items-center justify-center gap-1.5 rounded-lg"
+        />
       </div>
+
+      {/* ── YOUR CARDS: personalized (BG-31) ── */}
+      <div style={{ ...SECTION_LABEL, borderTop: '1px solid rgba(0,230,150,0.1)' }}>Your Cards</div>
+      {yourCards.length > 0 ? (
+        <div style={{ paddingBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          {yourCards.slice(0, 12).map((card) => (
+            <CardLink key={`mine-${card.id}`} card={card} />
+          ))}
+        </div>
+      ) : (
+        <div style={{ padding: '10px 14px', fontSize: '0.78rem', color: '#8ca59b', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          No cards claimed yet — grab one below.
+        </div>
+      )}
+
+      {/* ── WORK ORDERS: the live board ── */}
+      <div style={SECTION_LABEL}>Work Orders</div>
 
       {error && (
         <div style={{ padding: '14px', fontSize: '0.8rem', color: '#8ca59b' }}>
@@ -129,37 +266,7 @@ export function WorkOrdersRail() {
           {expanded.has(col.key) && (
             <div style={{ paddingBottom: '4px' }}>
               {col.cards.slice(0, 12).map((card) => (
-                <a
-                  key={card.id}
-                  href={BOARD_HOME_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={card.title}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '8px',
-                    padding: '6px 14px 6px 20px',
-                    fontSize: '0.78rem',
-                    color: '#c8dcd4',
-                    textDecoration: 'none',
-                    lineHeight: 1.3,
-                  }}
-                >
-                  <span
-                    style={{
-                      marginTop: '5px',
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      background: STATUS_DOT[card.status],
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                    {card.title}
-                  </span>
-                </a>
+                <CardLink key={card.id} card={card} />
               ))}
               {col.cards.length > 12 && (
                 <a
