@@ -1,4 +1,3 @@
-import { BugReporter } from '@/components/BugReporter';
 import { MenuBar } from '@/components/MenuBar';
 import { MobileHeader } from '@/components/MobileHeader';
 import { ResponsiveContainer } from '@/components/ui/ResponsiveContainer';
@@ -16,7 +15,8 @@ export default async function Layout({ children }: { children: React.ReactNode }
       <MenuBar />
 
       <ResponsiveContainer className="pb-20 md:pb-4">{children}</ResponsiveContainer>
-      <BugReporter />
+      {/* Single bug reporter is the global public/bug-button.js (routes to GitHub consciousness-bugs +
+          inbox + #bugs). BugReporter.tsx removed S436 — it was a 2nd floating button writing only /api/bugs. */}
     </div>
   );
 }
