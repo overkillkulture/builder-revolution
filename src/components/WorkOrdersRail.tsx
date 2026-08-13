@@ -10,6 +10,10 @@ interface BoardCard {
   status: 'open' | 'claimed' | 'done';
   owner: string;
   audience: 'public' | 'team' | 'inside';
+  // BG-18 (S436): card↔code binding — optional, graceful when absent.
+  repo_url?: string | null;
+  file_path?: string | null;
+  pr_url?: string | null;
 }
 
 interface BoardColumn {
@@ -67,37 +71,68 @@ function ownerMatches(owner: string, tokens: string[]): boolean {
 }
 
 function CardLink({ card }: { card: BoardCard }) {
+  // BG-18: show a tiny "code ↗" affordance when a card is bound to its code.
+  // Links to pr_url || repo_url; if only a file_path exists there's nothing to
+  // link to, so render a non-link label with the path as a tooltip. Sibling of the
+  // main anchor (never nested — invalid HTML) so its click never opens the board.
+  const codeHref = card.pr_url || card.repo_url || null;
+  const hasCode = !!(card.file_path || card.pr_url || card.repo_url);
   return (
-    <a
-      href={BOARD_HOME_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-      title={card.title}
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: '8px',
-        padding: '6px 14px 6px 20px',
-        fontSize: '0.78rem',
-        color: '#c8dcd4',
-        textDecoration: 'none',
-        lineHeight: 1.3,
-      }}
-    >
-      <span
+    <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+      <a
+        href={BOARD_HOME_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={card.title}
         style={{
-          marginTop: '5px',
-          width: '6px',
-          height: '6px',
-          borderRadius: '50%',
-          background: STATUS_DOT[card.status],
-          flexShrink: 0,
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '8px',
+          padding: '6px 14px 6px 20px',
+          fontSize: '0.78rem',
+          color: '#c8dcd4',
+          textDecoration: 'none',
+          lineHeight: 1.3,
         }}
-      />
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-        {card.title}
-      </span>
-    </a>
+      >
+        <span
+          style={{
+            marginTop: '5px',
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            background: STATUS_DOT[card.status],
+            flexShrink: 0,
+          }}
+        />
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+          {card.title}
+        </span>
+      </a>
+      {hasCode && (
+        codeHref ? (
+          <a
+            href={codeHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={card.file_path || codeHref}
+            onClick={(e) => e.stopPropagation()}
+            style={{ padding: '6px 12px 6px 4px', fontSize: '0.68rem', color: '#00e696', opacity: 0.75, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}
+          >
+            code ↗
+          </a>
+        ) : (
+          <span
+            title={card.file_path || ''}
+            style={{ padding: '6px 12px 6px 4px', fontSize: '0.68rem', color: '#6a8a7a', whiteSpace: 'nowrap', flexShrink: 0 }}
+          >
+            code
+          </span>
+        )
+      )}
+    </div>
   );
 }
 
