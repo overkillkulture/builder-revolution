@@ -5,6 +5,7 @@ import { useSessionUserData } from '@/hooks/useSessionUserData';
 import { useNotificationsCountQuery } from '@/hooks/queries/useNotificationsCountQuery';
 import { useCreatePostModal } from '@/hooks/useCreatePostModal';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useCallback } from 'react';
 import { LogoText } from './LogoText';
 import { MenuBarItem } from './MenuBarItem';
@@ -18,6 +19,11 @@ export function MenuBar() {
   const username = user?.username || 'user-not-found';
   const { data: notificationCount } = useNotificationsCountQuery();
   const { launchCreatePost } = useCreatePostModal();
+  // Fix #2: on room views the docked composer owns the bottom of the screen, so
+  // the mobile bottom nav must NOT float over the message list. Room switching
+  // stays available in the top MobileHeader (Guild / Case / Movement).
+  const pathname = usePathname();
+  const isRoomView = pathname?.startsWith('/community/') ?? false;
 
   const handleNewPost = useCallback(() => {
     launchCreatePost({});
@@ -57,14 +63,17 @@ export function MenuBar() {
 
   return (
     <>
-      {/* Mobile bottom bar — 5 icons, always visible */}
-      <div className="fixed bottom-0 z-[2] flex w-full border-t border-border/30 bg-background/80 backdrop-blur-md md:hidden">
-        {mobileItems.map((item) => (
-          <MenuBarItem key={item.title} {...item}>
-            {item.title}
-          </MenuBarItem>
-        ))}
-      </div>
+      {/* Mobile bottom bar — 5 icons. Hidden on room views (fix #2) so it never
+          floats over message text; the docked composer sits there instead. */}
+      {!isRoomView && (
+        <div className="fixed bottom-0 z-[2] flex w-full border-t border-border/30 bg-background/80 backdrop-blur-md md:hidden">
+          {mobileItems.map((item) => (
+            <MenuBarItem key={item.title} {...item}>
+              {item.title}
+            </MenuBarItem>
+          ))}
+        </div>
+      )}
 
       {/* Desktop sidebar */}
       <div className="hidden md:sticky md:top-0 md:flex md:h-screen md:w-[200px] md:flex-shrink-0 md:flex-col md:items-start md:overflow-y-auto md:border-r md:border-border/20 md:p-3">

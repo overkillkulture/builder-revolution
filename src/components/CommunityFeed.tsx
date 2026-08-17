@@ -1,12 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiUrl } from '@/lib/apiUrl';
 import { cn } from '@/lib/cn';
 import { CommunityBrandConfig } from '@/types/community';
 import { GetPost } from '@/types/definitions';
 import { Post } from './Post';
-import { CommunityCreatePost } from './CommunityCreatePost';
+import { CommunityComposer } from './CommunityComposer';
 import { CommunityReportButton } from './CommunityReportButton';
 
 const ALL = 'All';
@@ -25,6 +25,11 @@ export function CommunityFeed({
   const [commentsShown, setCommentsShown] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
+  // Fix #3: newest-at-bottom + autoscroll. bottomRef marks the end of the list;
+  // scrollTick is bumped only on initial load and on a NEW message (never on
+  // "Load more", which prepends older history above the current view).
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const [scrollTick, setScrollTick] = useState(0);
 
   const load = useCallback(
     async (cursor?: number) => {
@@ -45,8 +50,15 @@ export function CommunityFeed({
       setPosts(fetched);
       setHasMore(fetched.length === 10);
       setIsLoading(false);
+      setScrollTick((t) => t + 1); // jump to newest once the room loads
     });
   }, [load]);
+
+  // Autoscroll to the newest message on initial load and whenever we post one.
+  useEffect(() => {
+    if (scrollTick === 0) return;
+    bottomRef.current?.scrollIntoView({ block: 'end', behavior: scrollTick === 1 ? 'auto' : 'smooth' });
+  }, [scrollTick]);
 
   const loadMore = useCallback(async () => {
     const lastId = posts.at(-1)?.id;
@@ -65,11 +77,15 @@ export function CommunityFeed({
   }, []);
 
   const handleCreated = useCallback((post: GetPost) => {
+    // State stays newest-first; the reversed render puts this at the visual bottom.
     setPosts((prev) => [post, ...prev]);
+    setScrollTick((t) => t + 1);
   }, []);
 
   return (
-    <div>
+    // Bottom padding clears the fixed composer bar so the newest message is never
+    // hidden behind it (fix #1). ~96px + iOS safe-area inset.
+    <div style={{ paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))' }}>
       <div className="mb-4 flex flex-wrap gap-2">
         {[ALL, ...brand.categories].map((c) => (
           <button
@@ -88,21 +104,17 @@ export function CommunityFeed({
         ))}
       </div>
 
-      {canPost ? (
-        <CommunityCreatePost
-          slug={slug}
-          brand={brand}
-          defaultCategory={category !== ALL ? category : undefined}
-          onCreated={handleCreated}
-        />
-      ) : (
-        <a
-          href={`/login?from=/community/${slug}`}
-          className="block rounded-xl p-4 text-center text-sm font-semibold"
-          style={{ background: brand.accent, color: brand.bg, border: `1px solid ${brand.line}` }}
+      {/* "Load more" loads OLDER history — it belongs at the TOP now that newest is
+          at the bottom (fix #3). */}
+      {hasMore && !isLoading && posts.length > 0 && (
+        <button
+          type="button"
+          onClick={loadMore}
+          className="mx-auto mb-3 block rounded-full px-4 py-2 text-sm font-medium"
+          style={{ background: brand.panel, color: brand.text, border: `1px solid ${brand.line}` }}
         >
-          Sign in to join the conversation →
-        </a>
+          Load older messages
+        </button>
       )}
 
       {isLoading ? (
@@ -113,7 +125,8 @@ export function CommunityFeed({
         </p>
       ) : (
         <div className="flex flex-col gap-3">
-          {posts.map((post) => (
+          {/* Newest at the BOTTOM: state is newest-first, so reverse for display. */}
+          {posts.slice().reverse().map((post) => (
             <div key={post.id}>
               <Post id={post.id} commentsShown={commentsShown.has(post.id)} toggleComments={toggleComments} />
               <CommunityReportButton postId={post.id} brand={brand} />
@@ -122,16 +135,18 @@ export function CommunityFeed({
         </div>
       )}
 
-      {hasMore && !isLoading && posts.length > 0 && (
-        <button
-          type="button"
-          onClick={loadMore}
-          className="mx-auto mt-4 block rounded-full px-4 py-2 text-sm font-medium"
-          style={{ background: brand.panel, color: brand.text, border: `1px solid ${brand.line}` }}
-        >
-          Load more
-        </button>
-      )}
+      {/* autoscroll target */}
+      <div ref={bottomRef} />
+
+      {/* Docked bottom composer — replaces the old top yellow "Sign in to join"
+          banner and inline create-post card (fixes #1 + #4). */}
+      <CommunityComposer
+        slug={slug}
+        brand={brand}
+        category={category !== ALL ? category : undefined}
+        canPost={canPost}
+        onCreated={handleCreated}
+      />
     </div>
   );
 }
