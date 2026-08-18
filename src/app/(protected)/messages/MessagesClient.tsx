@@ -62,11 +62,26 @@ interface RoomData {
   hasUnread: boolean;
 }
 
+interface ChannelData {
+  id: number;
+  name: string;
+  description: string | null;
+  type: string;
+  memberCount: number;
+  messageCount: number;
+  lastMessage: {
+    content: string;
+    senderName: string;
+    createdAt: string;
+  } | null;
+}
+
 export function MessagesClient({ userId, embedded = false }: { userId: string; embedded?: boolean }) {
   const [conversations, setConversations] = useState<ConversationData[]>([]);
   const [rooms, setRooms] = useState<RoomData[]>([]);
+  const [channels, setChannels] = useState<ChannelData[]>([]);
   const [activeConv, setActiveConv] = useState<number | null>(null);
-  const [activeType, setActiveType] = useState<'dm' | 'room'>('dm');
+  const [activeType, setActiveType] = useState<'dm' | 'room' | 'channel'>('dm');
   const [messages, setMessages] = useState<MessageData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
@@ -78,9 +93,10 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
   // Load conversations
   const loadConversations = useCallback(async () => {
     try {
-      const [convRes, roomRes] = await Promise.all([
+      const [convRes, roomRes, channelRes] = await Promise.all([
         fetch(apiUrl('/api/conversations')),
         fetch(apiUrl('/api/rooms')),
+        fetch(apiUrl('/api/channels')),
       ]);
       if (convRes.ok) {
         const data = await convRes.json();
@@ -89,6 +105,10 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
       if (roomRes.ok) {
         const data = await roomRes.json();
         setRooms(data);
+      }
+      if (channelRes.ok) {
+        const data = await channelRes.json();
+        setChannels(data);
       }
     } catch (e) {
       console.error('Failed to load conversations', e);
@@ -142,7 +162,18 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
   // fall back to the first room/conversation. Runs once (autoSelectedRef).
   useEffect(() => {
     if (autoSelectedRef.current || loading || activeConv !== null) return;
+    // Prefer landing in the shared "General" town-square channel so everyone
+    // arrives in the same team room (MC-26); otherwise fall back to the most
+    // recently active conversation.
+    const general = channels.find((ch) => /^#?\s*general$/i.test(ch.name));
+    if (general) {
+      autoSelectedRef.current = true;
+      setActiveConv(general.id);
+      setActiveType('channel');
+      return;
+    }
     const candidates = [
+      ...channels.map((ch) => ({ id: ch.id, type: 'channel' as const, at: ch.lastMessage?.createdAt })),
       ...rooms.map((r) => ({ id: r.id, type: 'room' as const, at: r.lastMessage?.createdAt })),
       ...conversations.map((c) => ({ id: c.id, type: 'dm' as const, at: c.lastMessage?.createdAt })),
     ];
@@ -154,7 +185,7 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
     autoSelectedRef.current = true;
     setActiveConv(pick.id);
     setActiveType(pick.type);
-  }, [loading, activeConv, rooms, conversations]);
+  }, [loading, activeConv, rooms, conversations, channels]);
 
   // Poll for new messages when a conversation is active
   useEffect(() => {
@@ -202,7 +233,14 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
 
   const activeConvData = activeType === 'room'
     ? rooms.find((r) => r.id === activeConv)
-    : conversations.find((c) => c.id === activeConv);
+    : activeType === 'channel'
+      ? channels.find((ch) => ch.id === activeConv)
+      : conversations.find((c) => c.id === activeConv);
+
+  // /api/conversations returns every conversation the user belongs to — after
+  // channel auto-join that includes CHANNELs/ROOMs, which have their own
+  // sidebar sections. Keep the DM list to true 1:1s and groups only.
+  const dms = conversations.filter((c) => c.type !== 'CHANNEL' && c.type !== 'ROOM');
 
   const timeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -228,6 +266,37 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
         <MainContainer>
           <Sidebar position="left" style={{ background: '#0e161c', borderRight: '1px solid rgba(0,230,150,0.1)' }}>
             <ConversationList style={{ background: '#0e161c' }}>
+              {/* CHANNELS SECTION — the public town square (everyone can read/post) */}
+              {channels.length > 0 && (
+                <>
+                  <div style={{ padding: '10px 16px 4px', fontSize: '0.65rem', color: '#39d98a', letterSpacing: '1.5px', fontWeight: 700, textTransform: 'uppercase' as const }}>
+                    Channels
+                  </div>
+                  {channels.map((channel) => (
+                    <Conversation
+                      key={`channel-${channel.id}`}
+                      name={`# ${channel.name}`}
+                      info={channel.lastMessage?.content || `${channel.messageCount} messages`}
+                      lastActivityTime={
+                        channel.lastMessage ? timeAgo(channel.lastMessage.createdAt) : undefined
+                      }
+                      active={channel.id === activeConv && activeType === 'channel'}
+                      onClick={() => { setActiveConv(channel.id); setActiveType('channel'); }}
+                      style={{
+                        background: channel.id === activeConv && activeType === 'channel' ? 'rgba(57,217,138,0.14)' : 'transparent',
+                        borderBottom: '1px solid rgba(255,255,255,0.05)',
+                        borderLeft: '3px solid rgba(57,217,138,0.4)',
+                      }}
+                    >
+                      <Avatar
+                        name={channel.name}
+                        style={{ background: 'rgba(57,217,138,0.2)', color: '#39d98a' }}
+                      />
+                    </Conversation>
+                  ))}
+                </>
+              )}
+
               {/* ROOMS SECTION */}
               {rooms.length > 0 && (
                 <>
@@ -316,13 +385,13 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
               </div>
               {loading ? (
                 <Conversation name="Loading..." />
-              ) : conversations.length === 0 ? (
+              ) : dms.length === 0 ? (
                 <Conversation
                   name="No conversations yet"
                   info="Visit a profile and send a message"
                 />
               ) : (
-                conversations.map((conv) => (
+                dms.map((conv) => (
                   <Conversation
                     key={conv.id}
                     name={conv.name}
@@ -367,11 +436,11 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
                 />
                 <ConversationHeader.Content>
                   <span style={{ color: '#dceae6', fontWeight: 600 }}>
-                    {activeType === 'room' ? `# ${activeConvData.name}` : activeConvData.name}
+                    {activeType !== 'dm' ? `# ${activeConvData.name}` : activeConvData.name}
                   </span>
                   {'memberCount' in activeConvData && (
                     <span style={{ color: '#6a8a7a', fontSize: '0.75rem', display: 'block' }}>
-                      {(activeConvData as RoomData).memberCount} member{(activeConvData as RoomData).memberCount !== 1 ? 's' : ''}
+                      {activeConvData.memberCount} member{activeConvData.memberCount !== 1 ? 's' : ''}
                     </span>
                   )}
                 </ConversationHeader.Content>
@@ -434,21 +503,21 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
                   }}
                 >
                   <p style={{ fontSize: '2.5rem', marginBottom: '12px' }}>
-                    {activeType === 'room' ? '🏠' : '💬'}
+                    {activeType !== 'dm' ? '🏠' : '💬'}
                   </p>
                   <p style={{ fontSize: '1.1rem', fontWeight: 600, color: '#dceae6', marginBottom: '6px' }}>
-                    {activeType === 'room'
+                    {activeType !== 'dm'
                       ? `Welcome to # ${activeConvData.name}`
                       : `Chat with ${activeConvData.name}`}
                   </p>
                   <p style={{ fontSize: '0.85rem', opacity: 0.6, maxWidth: '320px', lineHeight: 1.5 }}>
-                    {activeType === 'room'
+                    {activeType !== 'dm'
                       ? 'This room is ready. Type a message below to get started. Invite other builders to collaborate.'
                       : 'Send a message to start the conversation.'}
                   </p>
-                  {'description' in activeConvData && (activeConvData as RoomData).description && (
+                  {'description' in activeConvData && activeConvData.description && (
                     <p style={{ fontSize: '0.8rem', opacity: 0.4, marginTop: '8px', fontStyle: 'italic' }}>
-                      {(activeConvData as RoomData).description}
+                      {activeConvData.description}
                     </p>
                   )}
                 </MessageList.Content>

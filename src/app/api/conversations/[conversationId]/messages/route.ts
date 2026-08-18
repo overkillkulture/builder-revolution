@@ -2,6 +2,29 @@ import { getServerUser } from '@/lib/getServerUser';
 import prisma from '@/lib/prisma/prisma';
 import { NextResponse } from 'next/server';
 
+// Return the user's membership for a conversation, lazily creating it for public
+// CHANNELs (the town square) so anyone can read/post. DMs, GROUPs and private
+// ROOMs stay strictly gated — no auto-join. Returns null if access is denied.
+async function ensureMemberOrGate(conversationId: number, userId: string) {
+  const existing = await prisma.conversationMember.findUnique({
+    where: { conversationId_userId: { conversationId, userId } },
+  });
+  if (existing) return existing;
+
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: { type: true },
+  });
+  if (conversation?.type !== 'CHANNEL') return null;
+
+  // Idempotent join (handles the race where two requests join at once).
+  return prisma.conversationMember.upsert({
+    where: { conversationId_userId: { conversationId, userId } },
+    create: { conversationId, userId, role: 'member' },
+    update: {},
+  });
+}
+
 // GET /api/conversations/:id/messages — get messages for a conversation
 export async function GET(
   request: Request,
@@ -12,12 +35,8 @@ export async function GET(
 
   const conversationId = parseInt(params.conversationId);
 
-  // Verify user is a member
-  const membership = await prisma.conversationMember.findUnique({
-    where: {
-      conversationId_userId: { conversationId, userId: user.id },
-    },
-  });
+  // Verify membership — or lazily join a public CHANNEL (MC-26).
+  const membership = await ensureMemberOrGate(conversationId, user.id);
   if (!membership) return NextResponse.json([], { status: 403 });
 
   const { searchParams } = new URL(request.url);
@@ -65,12 +84,8 @@ export async function POST(
     return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 });
   }
 
-  // Verify user is a member
-  const membership = await prisma.conversationMember.findUnique({
-    where: {
-      conversationId_userId: { conversationId, userId: user.id },
-    },
-  });
+  // Verify membership — or lazily join a public CHANNEL (MC-26).
+  const membership = await ensureMemberOrGate(conversationId, user.id);
   if (!membership) return NextResponse.json({}, { status: 403 });
 
   const message = await prisma.message.create({
