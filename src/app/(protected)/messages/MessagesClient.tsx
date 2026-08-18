@@ -73,6 +73,7 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomDesc, setNewRoomDesc] = useState('');
   const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSelectedRef = useRef(false);
 
   // Load conversations
   const loadConversations = useCallback(async () => {
@@ -134,6 +135,26 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
+
+  // Auto-select the most recently active conversation on first load so the user
+  // lands in a live chat with a visible composer — not the empty "Select a
+  // conversation" void (MC-09/MC-10). Prefer whatever has the newest message;
+  // fall back to the first room/conversation. Runs once (autoSelectedRef).
+  useEffect(() => {
+    if (autoSelectedRef.current || loading || activeConv !== null) return;
+    const candidates = [
+      ...rooms.map((r) => ({ id: r.id, type: 'room' as const, at: r.lastMessage?.createdAt })),
+      ...conversations.map((c) => ({ id: c.id, type: 'dm' as const, at: c.lastMessage?.createdAt })),
+    ];
+    if (candidates.length === 0) return;
+    const withMessages = candidates
+      .filter((c) => c.at)
+      .sort((a, b) => (a.at! < b.at! ? 1 : -1));
+    const pick = withMessages[0] || candidates[0];
+    autoSelectedRef.current = true;
+    setActiveConv(pick.id);
+    setActiveType(pick.type);
+  }, [loading, activeConv, rooms, conversations]);
 
   // Poll for new messages when a conversation is active
   useEffect(() => {
@@ -446,12 +467,29 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
                     height: '100%',
                     color: '#8ca59b',
                     fontSize: '1.1rem',
+                    textAlign: 'center',
+                    padding: '24px',
                   }}
                 >
-                  <p style={{ fontSize: '2rem', marginBottom: '8px' }}>💬</p>
-                  <p>Select a conversation or start a new one</p>
-                  <p style={{ fontSize: '0.85rem', opacity: 0.6, marginTop: '4px' }}>
-                    Visit someone&apos;s profile to send them a message
+                  <p style={{ fontSize: '2.5rem', marginBottom: '10px' }}>👋</p>
+                  <p style={{ fontWeight: 600, color: '#dceae6', marginBottom: '6px' }}>
+                    Welcome — jump into the conversation
+                  </p>
+                  <p style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '18px', maxWidth: '340px', lineHeight: 1.5 }}>
+                    Head to the Build Guild room to see what the team is building and post your first message.
+                  </p>
+                  <a
+                    href="/community/build-guild"
+                    style={{
+                      background: '#2ecc71', color: '#03110a', fontWeight: 700,
+                      padding: '10px 20px', borderRadius: '10px', fontSize: '0.9rem',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    Enter Build Guild →
+                  </a>
+                  <p style={{ fontSize: '0.78rem', opacity: 0.45, marginTop: '14px' }}>
+                    Or use “+ Create Private Room” on the left to start a group.
                   </p>
                 </MessageList.Content>
               </MessageList>
