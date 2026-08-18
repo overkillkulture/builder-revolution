@@ -6,7 +6,17 @@ import { NextResponse } from 'next/server';
 const isInviteOnly = process.env.INVITE_ONLY === 'true';
 
 export default {
-  providers: [GitHub, Google],
+  // allowDangerousEmailAccountLinking: the 206 migrated users + everyone who
+  // used quick-entry already have a User row keyed by email but NO linked OAuth
+  // Account. Without this, signing in with Google/GitHub for an existing email
+  // throws `OAuthAccountNotLinked` — the real cause of the "sign-in error"
+  // (MC-01/MC-02), NOT a redirect_uri_mismatch (the consoles are fine). Safe:
+  // both Google and GitHub verify email ownership before issuing the identity,
+  // so we link the incoming verified login to the existing same-email user.
+  providers: [
+    GitHub({ allowDangerousEmailAccountLinking: true }),
+    Google({ allowDangerousEmailAccountLinking: true }),
+  ],
   pages: {
     signIn: '/login',
   },
