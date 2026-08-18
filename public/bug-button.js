@@ -35,7 +35,7 @@
     .bug-btn {
       position: fixed;
       bottom: 24px;
-      left: 24px;
+      right: 24px;
       width: 56px;
       height: 56px;
       border-radius: 50%;
@@ -311,8 +311,9 @@
         max-height: 95vh;
       }
       .bug-btn {
-        bottom: 16px;
-        left: 16px;
+        bottom: 88px;
+        right: 16px;
+        left: auto;
         width: 48px;
         height: 48px;
         font-size: 22px;
