@@ -71,7 +71,7 @@ export function CommunityFeed({
   return (
     <div>
       <div className="mb-4 flex flex-wrap gap-2">
-        {[ALL, ...brand.categories].map((c) => (
+        {[ALL, ...(Array.isArray(brand.categories) ? brand.categories : [])].map((c) => (
           <button
             key={c}
             type="button"

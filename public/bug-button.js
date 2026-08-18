@@ -504,6 +504,7 @@
           description: [formData.description, formData.steps ? `Steps: ${formData.steps}` : ''].filter(Boolean).join('\n\n'),
           page: formData.page || window.location.pathname,
           priority: 'MEDIUM',
+          attachmentUrl: formData.attachmentUrl || null,
         })
       });
 

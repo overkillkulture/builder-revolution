@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma/prisma';
 import { getServerUser } from '@/lib/getServerUser';
 import { CommunityFeed } from '@/components/CommunityFeed';
-import { CommunityBrandConfig } from '@/types/community';
+import { normalizeBrand } from '@/types/community';
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const community = await prisma.community.findUnique({ where: { slug: params.slug }, select: { name: true } });
@@ -15,10 +15,13 @@ export default async function Page({ params }: { params: { slug: string } }) {
     select: { name: true, brandConfig: true },
   });
 
-  if (!community || !community.brandConfig) notFound();
+  // Only 404 if the ROOM itself doesn't exist. A room with a missing/partial
+  // brandConfig is still a real room — normalizeBrand fills in a safe theme
+  // instead of letting the client crash (was the Case/Movement whole-site crash).
+  if (!community) notFound();
 
   const [user] = await getServerUser();
-  const brand = community.brandConfig as unknown as CommunityBrandConfig;
+  const brand = normalizeBrand(community.brandConfig);
 
   return (
     <div className="min-h-screen px-2 pb-20 pt-3 sm:px-4 sm:pt-4" style={{ background: brand.bg, color: brand.text }}>
