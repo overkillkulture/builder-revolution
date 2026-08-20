@@ -33,8 +33,14 @@
 - **/main channel list CURATED 8→3.** API `/api/channels` now hides SYSTEM_CHANNELS (the #alerts bug-bot/email firehose) + shows only ACTIVE channels (≥3 msgs OR active in 14d). Live-verified: {#General, #Lobby, #Builders}, 0 console errors.
 - **OPSEC cleanup:** removed 7 empty (0-msg) conversations from the DB — 5 case-name channels (`preble-v-preble`, `eden-pierce`, `san-diego-mothers`, `andrea-ebbing`, `dina-sarkisova`) that were latent in the DB + 2 test rooms. Backed up to `~/.secrets/deleted-channels-backup-S446.json` (kept OUT of git — those names must never hit GitHub). Reversible.
 
+## DONE — loop 3 (S446, engagement + profiles + bug triage)
+- **Bug #2 FIXED (profile/banner image upload):** helper passed the file extension ('png') as the Supabase Content-Type → 415 invalid_mime_type → blank 500 on every profile/banner upload. Now sends the MIME type + surfaces the real error. **Live-verified: 200.** (Post images were unaffected — savePostFiles already correct.)
+- **Bug #1 VERIFIED working (like + comment):** reproduced live — like 200 + count updates; comment composer + POST 200 end-to-end. Was a pre-fix-era report. Resolved.
+- **2 empty rooms SEEDED:** ARAYA welcome posts in Case Builder + Builder Revolution (host voice, not impersonating Commander). Live-verified rendering.
+- **Bug board triaged + made honest:** 11 bugs → 9 RESOLVED (with per-bug resolution notes) / 2 OPEN (#5 canonical toolbar port, #3 subjective "whole view"). Nothing silently left OPEN-but-fixed.
+
 ## OPEN — needs Commander decision (not shipped, by design)
-- **Empty headline rooms:** Case Builder & Builder Revolution have 0 posts. Improved empty-state ships now; actual seed content should come from a real voice (not AI impersonating Commander — deliberately avoided).
+- **Empty headline rooms:** seeded with a welcome; real ongoing content is organic (people posting). Improved empty-state ships now; actual seed content should come from a real voice (not AI impersonating Commander — deliberately avoided).
 - **Offbrand toolbar / floating pink bug button:** Commander flagged twice. Replacing Munia's MenuBar with the canonical CR dock is a real React port (own worker), not this wave.
 
 *Receipts method: every "✅" above was observed live, not inferred from code.*
