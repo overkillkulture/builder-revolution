@@ -12,6 +12,14 @@ import { VideoRoomButton } from './VideoRoom';
 
 const isHQ = process.env.NEXT_PUBLIC_INVITE_ONLY === 'true';
 
+// The three rooms of Main Chat — the "servers" a member switches between.
+// Mirrors MobileHeader so desktop and phone offer the same room navigation.
+const ROOMS = [
+  { slug: 'build-guild', label: 'Build Guild', color: 'text-primary', dot: 'bg-primary' },
+  { slug: 'case-builder', label: 'Case Builder', color: 'text-cyan-400', dot: 'bg-cyan-400' },
+  { slug: 'builder-revolution', label: 'Builder Revolution', color: 'text-emerald-400', dot: 'bg-emerald-400' },
+];
+
 export function MenuBar() {
   const [user] = useSessionUserData();
   const isLoggedIn = !!user;
@@ -80,6 +88,23 @@ export function MenuBar() {
             {item.title}
           </MenuBarItem>
         ))}
+
+        {/* ROOMS — the three servers, reachable from desktop (was mobile-only) */}
+        <div className="mt-3 w-full border-t border-border/20 pt-3">
+          <div className="mb-1 px-4 text-[0.6rem] font-bold uppercase tracking-[0.15em] text-muted-foreground/40">
+            Rooms
+          </div>
+          {ROOMS.map((room) => (
+            <Link
+              key={room.slug}
+              href={`/community/${room.slug}`}
+              className={`flex items-center gap-2.5 rounded-lg px-4 py-1.5 text-sm font-medium ${room.color} transition-colors hover:bg-primary-accent/20`}
+            >
+              <span className={`h-2 w-2 flex-shrink-0 rounded-full ${room.dot}`} />
+              <span>{room.label}</span>
+            </Link>
+          ))}
+        </div>
         {isLoggedIn && (
           <button
             type="button"
