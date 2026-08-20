@@ -22,10 +22,13 @@ export async function POST(request: Request, { params }: { params: { commentId: 
   if (!user) return NextResponse.json({}, { status: 401 });
   const userId = user.id;
   const commentId = parseInt(params.commentId, 10);
+  if (Number.isNaN(commentId)) return NextResponse.json({}, { status: 400 });
 
   try {
     const body = await request.json();
     let { content } = commentWriteSchema.parse(body);
+    // Raw text for ARAYA detection (converted content hides "@araya") — S446.
+    const originalContent = content;
     const { str, usersMentioned } = await convertMentionUsernamesToIds({
       str: content,
     });
@@ -90,8 +93,8 @@ export async function POST(request: Request, { params }: { params: { commentId: 
       }).catch(() => {});
     }
 
-    // Trigger ARAYA inline response if mentioned (async, non-blocking)
-    maybeRespondAsAraya({ content, postId: comment.postId, commentId: res.id }).catch(() => {});
+    // Trigger ARAYA inline response if mentioned — RAW content so "@araya" matches.
+    maybeRespondAsAraya({ content: originalContent, postId: comment.postId, commentId: res.id }).catch(() => {});
 
     return NextResponse.json(replyData);
   } catch (error) {

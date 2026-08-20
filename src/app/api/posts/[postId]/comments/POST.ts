@@ -22,10 +22,15 @@ export async function POST(request: Request, { params }: { params: { postId: str
   if (!user) return NextResponse.json({}, { status: 401 });
   const userId = user.id;
   const postId = parseInt(params.postId, 10);
+  if (Number.isNaN(postId)) return NextResponse.json({}, { status: 400 });
 
   try {
     const body = await request.json();
     let { content } = commentWriteSchema.parse(body);
+    // Keep the RAW text for ARAYA detection — after conversion "@araya" becomes
+    // "@<araya-cuid>", so responder.ts's `includes('@araya')` never matched and
+    // she never replied to feed @mentions (S446).
+    const originalContent = content;
     const { str, usersMentioned } = await convertMentionUsernamesToIds({
       str: content,
     });
@@ -82,8 +87,9 @@ export async function POST(request: Request, { params }: { params: { postId: str
       pusher.trigger(CHANNELS.post(postId), EVENTS.NEW_COMMENT, commentData).catch(() => {});
     }
 
-    // Trigger ARAYA inline response if mentioned (async, non-blocking)
-    maybeRespondAsAraya({ content, postId, commentId: res.id }).catch(() => {});
+    // Trigger ARAYA inline response if mentioned (async, non-blocking).
+    // Use the RAW content so "@araya" is detected (converted content hides it).
+    maybeRespondAsAraya({ content: originalContent, postId, commentId: res.id }).catch(() => {});
 
     return NextResponse.json(commentData);
   } catch (error) {

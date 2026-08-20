@@ -11,6 +11,7 @@ export async function POST(
   if (!user) return NextResponse.json({}, { status: 401 });
 
   const roomId = parseInt(params.roomId);
+  if (Number.isNaN(roomId)) return NextResponse.json({ error: 'Invalid room' }, { status: 400 });
   const body = await request.json();
   const { userId: targetUserId, username } = body;
 
@@ -78,6 +79,7 @@ export async function DELETE(
   if (!user) return NextResponse.json({}, { status: 401 });
 
   const roomId = parseInt(params.roomId);
+  if (Number.isNaN(roomId)) return NextResponse.json({ error: 'Invalid room' }, { status: 400 });
   const body = await request.json();
   const { userId: targetUserId } = body;
 
