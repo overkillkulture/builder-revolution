@@ -95,21 +95,22 @@ export const {
           }
         }
 
-        // Resume an existing GUEST account only. A real account (OAuth-linked,
-        // or any non-@community.local verified email) may never be entered by
-        // typing its name — those must sign in for real.
-        const existing = await prisma.user.findFirst({
+        // Block impersonating a REAL account (OAuth-linked, or any
+        // non-@community.local verified email) that matches this name.
+        const clash = await prisma.user.findFirst({
           where: { OR: [{ email: guestEmail }, { username: guestUsername }] },
           include: { accounts: { select: { id: true }, take: 1 } },
         });
-        if (existing) {
-          const isGuest = (existing.email || '').endsWith('@community.local') && existing.accounts.length === 0;
-          if (!isGuest) return null;
-          return { id: existing.id, name: existing.name, email: existing.email };
-        }
+        const clashIsReal = !!clash && !((clash.email || '').endsWith('@community.local') && clash.accounts.length === 0);
+        if (clashIsReal) return null;
 
+        // Guest sessions are EPHEMERAL: never RESUME an existing guest by name —
+        // name-only resume let anyone type your name and read your DMs (S446).
+        // Always mint a fresh, uniquely-named guest. Want your account back later?
+        // Sign in with Google/GitHub (those persist and are protected above).
+        const uname = clash ? `${guestUsername}-${Math.random().toString(36).slice(2, 6)}` : guestUsername;
         const user = await prisma.user.create({
-          data: { username: guestUsername, name: isEmail ? guestUsername : input, email: guestEmail },
+          data: { username: uname, name: isEmail ? guestUsername : input, email: `${uname}@community.local` },
         });
 
         return { id: user.id, name: user.name, email: user.email };

@@ -2,8 +2,13 @@ import { getServerUser } from '@/lib/getServerUser';
 import prisma from '@/lib/prisma/prisma';
 import { NextResponse } from 'next/server';
 
-// GET /api/bugs — list bug reports (for admins later)
+// GET /api/bugs — list bug reports. Requires auth: this returns EVERY report
+// (reporter identity, page paths, attachment URLs) and was fully public — any
+// anonymous visitor could dump the whole bug DB (S446). Ops reads via the DB
+// directly (see reference_main-chat-access-recipe), not this endpoint.
 export async function GET() {
+  const [user] = await getServerUser();
+  if (!user) return NextResponse.json({ error: 'Sign in to view bug reports.' }, { status: 401 });
   const bugs = await prisma.bugReport.findMany({
     orderBy: { createdAt: 'desc' },
     include: {
