@@ -71,7 +71,18 @@ Dimensions: async/await · deep IDOR (all 37 routes) · frontend · input-valida
 - HighlightedMentions missing `/g` on `>` escape: not exploitable (`<` escaped globally + DOMPurify). Cosmetic only.
 - No SQL injection (zero `$queryRaw`/`$executeRaw`); no `dangerouslySetInnerHTML`. async/await clean beyond the known 5. Most routes correctly authorized (full coverage log in agent output).
 
+## DONE — loop 8 (S446, "find em all" second pass — concurrency/realtime + auth/lifecycle; deploys RESUMED)
+Two deeper finders. Verified vs source; several also verified live in prod.
+- **LIVE-VERIFIED (deploys came back):** anon-delete → 403 (post survived) · upload html/svg → 415, png → 200 · Message-routing → opens the DM (`?c=`) · conversations self-DM/missing/CHANNEL → 400.
+- **Impersonation reopening FIXED (eed0cd8):** RESERVED only checked the slug; the raw DISPLAY name could read "Commander" via homoglyph ("Cοmmander"→slug "cmmander") or "Commander X". Now folds confusables+diacritics and rejects reserved tokens in the display name. + supabase-bridge username collision (guest squats local-part → breaks silent bridge login) → suffix on conflict.
+- **ARAYA feed @mention FIXED (d72b4fc):** detection ran on CONVERTED content (@araya→@<cuid>) so she never replied to feed mentions; now uses raw content (comments+replies). + like/comment double-click P2002→500→optimistic-rollback desync → try/catch 409. + NaN guards on postId/commentId/roomId.
+- **Duplicate DMs FIXED (2051fd5):** find-then-create TOCTOU → double-click made two DMs for a pair. Added nullable @unique `dmKey` + upsert (schema change via db push; existing DMs fall back to membership match).
+
 ## FLAGGED — needs Commander decision (not changed unilaterally)
+- **Guest identity resume is name-only:** anyone typing an existing guest's name (or a normalization-equal) resumes THAT guest and can read their DMs. Inherent to passwordless. Decision: make guest sessions ephemeral (no name-resume) vs keep frictionless resume. (Real accounts are already protected.)
+- **Deleted/banned user keeps access ≤90 days** (JWT maxAge; getServerUser doesn't re-check liveness) — needs a session-revocation mechanism.
+- **NEW_POST feed realtime is dead wiring** (bound, never triggered; hook never mounted) — feed updates on poll; wire it or delete it.
+- ARAYA @-trigger substring over-match (ARAYA window's lane); GET /api/bugs public (below); forced group/room membership consent.
 - **`GET /api/bugs` is public (no auth)** — leaks all bug reports (reporter names, page paths, attachment URLs) to anyone. BUT it's a documented ops feature (`reference_main-chat-access-recipe`: "read them all live with no auth"). Gating it breaks that workflow. Decide: gate + update the recipe to an authed read, or accept the leak.
 - **Message-send failure UX (medium):** on a non-OK send the optimistic bubble stays then vanishes on the next 3s poll (no error shown); polling does a blind full-replace that can flicker just-sent messages. Real, but a frontend state-merge change — deferring until Railway resumes so I can verify live (won't stage blind).
 - **Low:** bug-attachment upload takes client content-type unauthenticated (host-arbitrary-content abuse); forced group/DM membership (spam vector); notif badge ~5s lag; ARAYA @-trigger over-matches on substring (ARAYA window's lane).
