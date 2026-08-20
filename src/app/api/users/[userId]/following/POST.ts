@@ -20,6 +20,10 @@ export async function POST(request: Request, { params }: { params: { userId: str
 
   try {
     const { userIdToFollow } = followPostSchema.parse(await request.json());
+    // A self-follow row inflates follower/following counts (S446). Reject it.
+    if (userIdToFollow === user.id) {
+      return NextResponse.json({ error: 'You cannot follow yourself.' }, { status: 400 });
+    }
     const res = await prisma.follow.create({
       data: {
         followerId: user.id,

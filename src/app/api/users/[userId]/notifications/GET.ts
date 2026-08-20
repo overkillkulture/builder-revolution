@@ -14,8 +14,11 @@ export async function GET(request: Request) {
   const userId = user.id;
 
   const { searchParams } = new URL(request.url);
-  const limit = parseInt(searchParams.get('limit') || '5', 10);
-  const cursor = parseInt(searchParams.get('cursor') || '0', 10);
+  // Clamp: NaN take -> Prisma 500; huge limit -> DoS (S446).
+  const rawLimit = parseInt(searchParams.get('limit') || '5', 10);
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 50) : 5;
+  const rawCursor = parseInt(searchParams.get('cursor') || '0', 10);
+  const cursor = Number.isFinite(rawCursor) ? rawCursor : 0;
   const sortDirection = (searchParams.get('sort-direction') as 'asc' | 'desc') || 'desc';
 
   const selectUser = {

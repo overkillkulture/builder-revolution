@@ -96,11 +96,14 @@ export async function DELETE(
     return NextResponse.json({ error: 'Cannot remove yourself as owner' }, { status: 400 });
   }
 
-  await prisma.conversationMember.delete({
-    where: {
-      conversationId_userId: { conversationId: roomId, userId: targetUserId },
-    },
+  // deleteMany (not delete) so removing a non-member / already-removed user is a
+  // no-op instead of a P2025 -> unhandled 500 (e.g. double-click remove) (S446).
+  const removed = await prisma.conversationMember.deleteMany({
+    where: { conversationId: roomId, userId: targetUserId },
   });
+  if (removed.count === 0) {
+    return NextResponse.json({ error: 'User is not a member of this room' }, { status: 404 });
+  }
 
   return NextResponse.json({ success: true });
 }

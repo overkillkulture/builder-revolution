@@ -75,46 +75,54 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({}, { status: 401 });
 
   const body = await request.json();
-  const { name, description, memberIds = [] } = body;
+  const { name, description } = body;
 
   if (!name?.trim()) {
     return NextResponse.json({ error: 'Room name is required' }, { status: 400 });
   }
 
-  // Create room with creator as owner + any invited members
-  const allMemberIds = [user.id, ...memberIds.filter((id: string) => id !== user.id)];
+  // Dedupe + keep only real users (client-supplied ids were trusted verbatim, so
+  // a duplicate or non-existent id caused an unhandled 500). Cap at 50 (S446).
+  const rawIds: unknown = body.memberIds;
+  const memberIds = Array.isArray(rawIds) ? rawIds.filter((x): x is string => typeof x === 'string') : [];
+  const uniqueIds = Array.from(new Set([user.id, ...memberIds])).slice(0, 50);
+  const realUsers = await prisma.user.findMany({ where: { id: { in: uniqueIds } }, select: { id: true } });
 
-  const room = await prisma.conversation.create({
-    data: {
-      name: name.trim(),
-      description: description?.trim() || null,
-      type: 'ROOM',
-      createdById: user.id,
-      members: {
-        create: allMemberIds.map((userId: string, index: number) => ({
-          userId,
-          role: userId === user.id ? 'owner' : 'member',
-        })),
+  try {
+    const room = await prisma.conversation.create({
+      data: {
+        name: name.trim().slice(0, 100),
+        description: typeof description === 'string' ? description.trim().slice(0, 500) || null : null,
+        type: 'ROOM',
+        createdById: user.id,
+        members: {
+          create: realUsers.map((u) => ({
+            userId: u.id,
+            role: u.id === user.id ? 'owner' : 'member',
+          })),
+        },
       },
-    },
-    include: {
-      members: {
-        include: {
-          user: {
-            select: { id: true, name: true, username: true, profilePhoto: true },
+      include: {
+        members: {
+          include: {
+            user: {
+              select: { id: true, name: true, username: true, profilePhoto: true },
+            },
           },
         },
       },
-    },
-  });
+    });
 
-  return NextResponse.json({
-    id: room.id,
-    name: room.name,
-    description: room.description,
-    members: room.members.map((m) => ({
-      ...m.user,
-      role: m.role,
-    })),
-  });
+    return NextResponse.json({
+      id: room.id,
+      name: room.name,
+      description: room.description,
+      members: room.members.map((m) => ({
+        ...m.user,
+        role: m.role,
+      })),
+    });
+  } catch (e) {
+    return NextResponse.json({ error: 'Could not create room' }, { status: 500 });
+  }
 }

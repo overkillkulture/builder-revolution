@@ -6,8 +6,13 @@ import 'server-only';
  */
 export function usePostsSorter(url: string) {
   const { searchParams } = new URL(url);
-  const limit = parseInt(searchParams.get('limit') || '5', 10);
-  const cursor = parseInt(searchParams.get('cursor') || '0', 10);
+  // Clamp limit: a non-numeric `?limit=abc` was NaN -> `take: NaN` -> Prisma
+  // validation error -> unhandled 500 on public GETs; `?limit=1e9` pulled the
+  // whole table (DoS). Bound to 1..50 with a safe default (S446).
+  const rawLimit = parseInt(searchParams.get('limit') || '5', 10);
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 50) : 5;
+  const rawCursor = parseInt(searchParams.get('cursor') || '0', 10);
+  const cursor = Number.isFinite(rawCursor) ? rawCursor : 0;
   const sortDirection = (searchParams.get('sort-direction') as 'asc' | 'desc') || 'desc';
 
   /**

@@ -35,14 +35,18 @@ export async function GET(
   if (!user) return NextResponse.json([], { status: 401 });
 
   const conversationId = parseInt(params.conversationId);
+  if (Number.isNaN(conversationId)) return NextResponse.json([], { status: 400 });
 
   // Verify membership — or lazily join a public CHANNEL (MC-26).
   const membership = await ensureMemberOrGate(conversationId, user.id);
   if (!membership) return NextResponse.json([], { status: 403 });
 
   const { searchParams } = new URL(request.url);
-  const limit = parseInt(searchParams.get('limit') || '50');
-  const cursor = parseInt(searchParams.get('cursor') || '0');
+  // Clamp: NaN take -> Prisma 500; huge limit -> DoS (S446).
+  const rawLimit = parseInt(searchParams.get('limit') || '50');
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 100) : 50;
+  const rawCursor = parseInt(searchParams.get('cursor') || '0');
+  const cursor = Number.isFinite(rawCursor) ? rawCursor : 0;
 
   const messages = await prisma.message.findMany({
     where: {
@@ -78,11 +82,15 @@ export async function POST(
   if (!user) return NextResponse.json({}, { status: 401 });
 
   const conversationId = parseInt(params.conversationId);
+  if (Number.isNaN(conversationId)) return NextResponse.json({}, { status: 400 });
   const body = await request.json();
   const { content } = body;
 
   if (!content?.trim()) {
     return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 });
+  }
+  if (content.trim().length > 4000) {
+    return NextResponse.json({ error: 'Message too long (max 4000 chars)' }, { status: 400 });
   }
 
   // Verify membership — or lazily join a public CHANNEL (MC-26).

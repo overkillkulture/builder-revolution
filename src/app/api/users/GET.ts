@@ -20,8 +20,11 @@ export async function GET(request: Request) {
   const [user] = await getServerUser();
   const { searchParams } = new URL(request.url);
 
-  const limit = parseInt(searchParams.get('limit') || '4', 10);
-  const offset = parseInt(searchParams.get('offset') || '0', 10);
+  // Clamp: NaN take/skip -> Prisma 500; huge limit -> table scan/DoS (S446).
+  const rawLimit = parseInt(searchParams.get('limit') || '4', 10);
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 50) : 4;
+  const rawOffset = parseInt(searchParams.get('offset') || '0', 10);
+  const offset = Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0;
 
   const search = searchParams.get('search');
   const gender = toUpper(snakeCase(searchParams.get('gender') || undefined));
