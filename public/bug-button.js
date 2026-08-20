@@ -39,12 +39,12 @@
       width: 56px;
       height: 56px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #ff0080 0%, #7928ca 100%);
+      background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
       border: 2px solid rgba(255,255,255,0.15);
       color: #fff;
       font-size: 26px;
       cursor: pointer;
-      box-shadow: 0 4px 20px rgba(255,0,128,0.3);
+      box-shadow: 0 4px 20px rgba(46,204,113,0.35);
       transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
       z-index: 9998;
       display: flex;
@@ -54,7 +54,7 @@
     }
     .bug-btn:hover {
       transform: scale(1.1) rotate(5deg);
-      box-shadow: 0 6px 28px rgba(255,0,128,0.5);
+      box-shadow: 0 6px 28px rgba(46,204,113,0.55);
     }
     .bug-btn:active {
       transform: scale(0.95);
@@ -213,7 +213,7 @@
     .bug-file-preview button {
       background: transparent;
       border: none;
-      color: #ff0080;
+      color: #2ecc71;
       cursor: pointer;
       font-size: 1rem;
       padding: 0;
@@ -301,8 +301,8 @@
       transition: all 0.2s;
     }
     .bug-btn-cancel:hover {
-      border-color: #ff0080;
-      color: #ff0080;
+      border-color: #2ecc71;
+      color: #2ecc71;
     }
 
     @media (max-width: 600px) {
