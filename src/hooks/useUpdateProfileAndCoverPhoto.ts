@@ -36,10 +36,13 @@ export async function useUpdateProfileAndCoverPhoto({
       return NextResponse.json({ error: 'Unsupported file type.' }, { status: 400 });
     }
 
-    // Upload image to S3
+    // Upload image to S3. NOTE: pass the MIME type (file.type, e.g. "image/png")
+    // as the Content-Type — NOT the bare extension. Supabase Storage rejects a
+    // non-MIME Content-Type with 415 invalid_mime_type, which was silently
+    // turning EVERY profile/banner upload into a 500 (bug #2).
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = `${Date.now()}-${uuid()}.${fileExtension}`;
-    await uploadObject(buffer, fileName, fileExtension);
+    await uploadObject(buffer, fileName, file.type);
 
     await prisma.user.update({
       where: {
@@ -70,6 +73,9 @@ export async function useUpdateProfileAndCoverPhoto({
 
     return NextResponse.json({ uploadedTo });
   } catch (error) {
-    return NextResponse.json({ error: 'Server error.' }, { status: 500 });
+    // Surface the real cause instead of a blank "Server error" (nothing-silent).
+    console.error('profile/cover photo upload failed:', error);
+    const message = error instanceof Error ? error.message : 'Server error.';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
