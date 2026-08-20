@@ -30,8 +30,11 @@ export function useDeletePostMutation() {
       // Cancel any outgoing refetches
       await qc.cancelQueries({ queryKey });
 
-      // Snapshot the previous posts
-      const previousPosts = qc.getQueryData(queryKey);
+      // Snapshot with getQueriesData (PREFIX match) — the real lists are keyed
+      // ['users', id, 'posts', { type }], so an exact getQueryData returned
+      // undefined and the rollback restored nothing (post stayed gone on a
+      // failed delete). Snapshot every matching key so onError can restore (S446).
+      const previous = qc.getQueriesData<InfiniteData<PostIds>>({ queryKey });
 
       // Optimistically remove the post
       qc.setQueriesData<InfiniteData<PostIds>>({ queryKey }, (oldData) => {
@@ -59,11 +62,12 @@ export function useDeletePostMutation() {
         };
       });
 
-      // Return a context object with the snapshotted value
-      return { previousPosts };
+      // Return a context object with the snapshotted values
+      return { previous };
     },
     onError: (error, variables, context) => {
-      qc.setQueryData(queryKey, context?.previousPosts);
+      // Restore each snapshotted list (post reappears when the delete fails).
+      context?.previous?.forEach(([key, data]) => qc.setQueryData(key, data));
       notifyError(error);
     },
   });
