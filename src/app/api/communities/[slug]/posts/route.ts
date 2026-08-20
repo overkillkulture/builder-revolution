@@ -16,6 +16,8 @@ import { toGetPost } from '@/lib/prisma/toGetPost';
 import { GetPost } from '@/types/definitions';
 import { getServerUser } from '@/lib/getServerUser';
 import { usePostsSorter } from '@/hooks/usePostsSorter';
+import { convertMentionUsernamesToIds } from '@/lib/convertMentionUsernamesToIds';
+import { mentionsActivityLogger } from '@/lib/mentionsActivityLogger';
 
 const createSchema = z.object({
   content: z.string().trim().min(1, 'Post cannot be empty.').max(5000),
@@ -59,14 +61,29 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   try {
     const body = createSchema.parse(await request.json());
 
+    // Resolve @username mentions to ids so the mention link renders AND the
+    // mentioned user gets a notification — same as the main feed (serverWritePost).
+    // Without this, tagging someone in a community room did nothing (S446).
+    const { str, usersMentioned } = await convertMentionUsernamesToIds({ str: body.content });
+
     const res = await prisma.post.create({
       data: {
-        content: body.content,
+        content: str,
         category: body.category,
         communityId: community.id,
         userId: user.id,
       },
       select: selectPost(user.id),
+    });
+
+    await mentionsActivityLogger({
+      usersMentioned,
+      activity: {
+        type: 'POST_MENTION',
+        sourceUserId: user.id,
+        sourceId: res.id,
+      },
+      isUpdate: false,
     });
 
     return NextResponse.json<GetPost>(await toGetPost(res));
