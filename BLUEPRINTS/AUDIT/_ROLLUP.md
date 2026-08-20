@@ -55,6 +55,22 @@ Two parallel audit agents (security + correctness), every finding verified by me
 - **🟠 SSRF FIXED in /api/ai:** client `x-ai-endpoint` header let any authed caller make the server fetch an arbitrary URL + reflect the reply (cloud-metadata/mesh/internal pivot). Endpoint is now server-config-only; BYOK-key preserved. Commit f97cfa0.
 - **🟠 Community @mentions FIXED:** the 3 headline rooms stored raw content — no mention-resolution, no notification. Now mirrors the main feed (link + POST_MENTION). Commit 4cff7c7.
 
+## DONE — loop 7 (S446, "find em all" — 5-agent exhaustive sweep, every finding verified vs source, all STAGED)
+Dimensions: async/await · deep IDOR (all 37 routes) · frontend · input-validation/injection · data-integrity.
+**Security (commit 9e3142b):** 🔴 CRITICAL — anon could STILL delete any post/comment after the await fix, because for a logged-out caller `user.id` is undefined and Prisma DROPS undefined where-fields → gate passed. Guarded all 3 helpers with `if(!user?.id) return false`. 🟠 open-redirect on `/login?from=` (`//evil.com`) → reject protocol-relative. 🟠 `/api/upload-bug-attachment` stored client MIME in a public bucket (host active HTML/SVG = stored XSS) → raster-image allowlist, SVG excluded.
+**Crash/DoS (commit b53cc19):** pagination NaN→500 + unbounded limit→table-scan DoS on public GETs (usePostsSorter/users/notifications/messages, all clamped 1..50/100); NaN conversationId→500 guarded + 4000-char message cap; conversations POST whitelists `type` (a client could mint auto-join CHANNELs), verifies targetUserId, rejects self-DM, dedupes members, try/catch; rooms POST dedupe/validate/try-catch; room-invite DELETE 500-on-non-member → deleteMany/404; self-follow (count inflation) rejected.
+**Correctness (commit 934ebef):** failed post-delete now rolls back (was: post vanished permanently on a failed delete — wrong react-query key).
+
+## DEFERRED — real, but verifying live > staging blind (Railway paused; do when deploys resume)
+- **Comment/reply count freeze:** counts only update via Pusher; if Pusher isn't configured they never move. Fix = optimistic increment, but it interacts with the Pusher NEW_COMMENT handler (double-count risk for the sender) — needs live verification.
+- **Message-send failure UX:** optimistic bubble stays then vanishes on next poll (no error). Frontend state-merge.
+- **Minor:** edit-profile portfolio silent-save-failure; community composer collapses 401 to generic error; "mark all read" badge ~5s lag.
+
+## RULED OUT — confirmed NON-bugs (so they're not re-chased)
+- Username seeded from `id`: `User.id` is a CUID (alphanumeric), passes the username regex — not a UUID. No bug.
+- HighlightedMentions missing `/g` on `>` escape: not exploitable (`<` escaped globally + DOMPurify). Cosmetic only.
+- No SQL injection (zero `$queryRaw`/`$executeRaw`); no `dangerouslySetInnerHTML`. async/await clean beyond the known 5. Most routes correctly authorized (full coverage log in agent output).
+
 ## FLAGGED — needs Commander decision (not changed unilaterally)
 - **`GET /api/bugs` is public (no auth)** — leaks all bug reports (reporter names, page paths, attachment URLs) to anyone. BUT it's a documented ops feature (`reference_main-chat-access-recipe`: "read them all live with no auth"). Gating it breaks that workflow. Decide: gate + update the recipe to an authed read, or accept the leak.
 - **Message-send failure UX (medium):** on a non-OK send the optimistic bubble stays then vanishes on the next 3s poll (no error shown); polling does a blind full-replace that can flicker just-sent messages. Real, but a frontend state-merge change — deferring until Railway resumes so I can verify live (won't stage blind).
