@@ -20,6 +20,37 @@ declare module 'next-auth' {
   }
 }
 
+// Privileged/system identities that may NEVER be entered via passwordless
+// quick-entry (they must use real OAuth login).
+const RESERVED = new Set([
+  'commander', 'admin', 'administrator', 'araya', 'root', 'owner', 'staff',
+  'moderator', 'mod', 'system', 'support', 'official', 'superadmin', 'sysadmin',
+  'team', 'help',
+]);
+// Common Cyrillic/Greek homoglyphs -> ASCII, so "Cοmmander" (Greek omicron) or
+// "аdmin" (Cyrillic a) can't slip a privileged DISPLAY name past the check.
+const CONFUSABLES: Record<string, string> = {
+  а: 'a', е: 'e', о: 'o', р: 'p', с: 'c', х: 'x', у: 'y', к: 'k', м: 'm',
+  т: 't', н: 'h', в: 'b', і: 'i', ѕ: 's', ԁ: 'd', ο: 'o', α: 'a', ρ: 'p',
+  ε: 'e', ι: 'i', ν: 'v', τ: 't', κ: 'k', υ: 'u', η: 'n',
+};
+function foldName(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '') // strip diacritics (Admín -> admin)
+    .split('')
+    .map((ch) => CONFUSABLES[ch] ?? ch)
+    .join('');
+}
+// True if the display name impersonates a reserved identity — as a whole word
+// ("Commander X"), a homoglyph ("Cοmmander"), or the whole cleaned string.
+function looksReserved(displayName: string): boolean {
+  const folded = foldName(displayName);
+  const tokens = folded.split(/[^a-z0-9]+/).filter(Boolean);
+  return tokens.some((t) => RESERVED.has(t)) || RESERVED.has(folded.replace(/[^a-z0-9]/g, ''));
+}
+
 export const {
   auth,
   handlers: { GET, POST },
@@ -49,10 +80,9 @@ export const {
           .toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'guest';
         const guestEmail = `${guestUsername}@community.local`;
 
-        // RESERVED — privileged/system identities can NEVER be entered
-        // passwordlessly; they must use real OAuth login.
-        const RESERVED = new Set(['commander','admin','administrator','araya','root','owner','staff','moderator','mod','system','support','official','superadmin','sysadmin','team','help']);
-        if (RESERVED.has(guestUsername) || RESERVED.has(input.toLowerCase())) return null;
+        // RESERVED — a privileged identity can't be entered passwordlessly, via
+        // the slug OR the raw DISPLAY name (incl. homoglyphs / "Commander X").
+        if (RESERVED.has(guestUsername) || looksReserved(input)) return null;
 
         // INVITE-ONLY: check input against allowlist before creating user
         if (process.env.INVITE_ONLY === 'true') {
@@ -110,8 +140,14 @@ export const {
         if (!user) {
           const localPart = email.split('@')[0].replace(/[^a-z0-9-]/g, '') || 'builder';
           const fullName = sbUser?.user_metadata?.full_name || sbUser?.user_metadata?.display_name || localPart;
+          // username is @unique. A quick-entry guest may already hold `localPart`
+          // (or two real users share a local-part), which would throw and BREAK
+          // the silent main-site->chat bridge for that victim. Suffix on collision.
+          let username = localPart;
+          const taken = await prisma.user.findUnique({ where: { username }, select: { id: true } });
+          if (taken) username = `${localPart}-${Math.random().toString(36).slice(2, 6)}`;
           user = await prisma.user.create({
-            data: { username: localPart, name: fullName, email },
+            data: { username, name: fullName, email },
           });
         }
 
