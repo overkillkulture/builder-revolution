@@ -1,5 +1,6 @@
 import { getServerUser } from '@/lib/getServerUser';
 import prisma from '@/lib/prisma/prisma';
+import { maybeRespondAsArayaInChat } from '@/lib/araya/chatResponder';
 import { NextResponse } from 'next/server';
 
 // Return the user's membership for a conversation, lazily creating it for public
@@ -114,6 +115,14 @@ export async function POST(
     },
     data: { lastReadAt: new Date() },
   });
+
+  // If the message @mentions ARAYA, let her reply (fire-and-forget — never blocks
+  // or fails the human's send). Poll-based clients pick up her reply within ~3s.
+  maybeRespondAsArayaInChat({
+    content: content.trim(),
+    conversationId,
+    senderId: user.id,
+  }).catch(() => {});
 
   return NextResponse.json(message);
 }
