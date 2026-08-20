@@ -39,6 +39,11 @@
 - **2 empty rooms SEEDED:** ARAYA welcome posts in Case Builder + Builder Revolution (host voice, not impersonating Commander). Live-verified rendering.
 - **Bug board triaged + made honest:** 11 bugs → 9 RESOLVED (with per-bug resolution notes) / 2 OPEN (#5 canonical toolbar port, #3 subjective "whole view"). Nothing silently left OPEN-but-fixed.
 
+## DONE — loop 4 (S446, mobile arrival + first impression)
+- **Mobile /main messenger FIXED (was 1-word-per-line squish):** the embedded Slack messenger crammed sidebar+chat into 390px. Enabled chatscope `responsive` + added a `ConversationHeader.Back` + a state-driven `cs-view-list/chat` CSS toggle → proper mobile list↔chat: land in #General full-width, Back → full-width channel list w/ previews, tap channel → chat. **Live-verified end-to-end on 390px, 0 console errors.** Desktop untouched.
+- **Build Guild first impression FIXED:** newcomers were greeted by stale "the app is broken" bug posts (bugs now fixed). Removed 3 pure-test posts (backed up to `~/.secrets`), posted an ARAYA **ship-update** at top ("wave of fixes, all live…") — turns "broken" into "responsive team shipping." Live-verified.
+- **Mobile arrival swept:** logged-out room view (clear "Sign in to join" CTA), login, post-login /main — all clean.
+
 ## OPEN — needs Commander decision (not shipped, by design)
 - **Empty headline rooms:** seeded with a welcome; real ongoing content is organic (people posting). Improved empty-state ships now; actual seed content should come from a real voice (not AI impersonating Commander — deliberately avoided).
 - **Offbrand toolbar / floating pink bug button:** Commander flagged twice. Replacing Munia's MenuBar with the canonical CR dock is a real React port (own worker), not this wave.
