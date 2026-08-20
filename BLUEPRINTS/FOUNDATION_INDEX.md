@@ -21,6 +21,7 @@ Case Builder is Munia (a social network) with private rooms bolted on. A "room" 
 - **02_AI_CONCIERGE_AND_COCKPITS.md** — the in-room AI (already BYOK provider-swappable) returns action-link cards from a server-owned whitelist + an escalate path to the human team. Per-job-title cockpits (Commander/Builder/Legal/Member/Guest), one shell, role-filtered panels — **fully greenfield** (the "HQ" is just a Jitsi page today).
 - **03_ROOM_FILE_SHARING.md** — per-room files: new `RoomFile` model, **private** `room-files` bucket + signed URLs (today's uploads go to a PUBLIC bucket — case evidence would be world-readable), role-gated. ~70% reuses Munia's Supabase upload plumbing.
 - **04_ADVERSARIAL_WALK.md** — real status codes + the fire list above + SSRF in the AI route (`x-ai-endpoint` header → server fetches any URL) + public-by-design data (`/api/posts` no-auth, public `/meet`).
+- **05_AGENT_ARMY_CHAT_OPTIMIZATION.md** (S446) — the wave that turns "a broken chat" into a dev workspace: 6 views enumerated, an agent org chart (Scout/Eye/Hands/Red-team/Judge/Shield), a per-view loop (catalog→reference→diff→fix→grade→verify), and a fires-first execution order (kill the Case/Movement crash + the Build-Guild mislabel before any polish). Commander bug #8.
 
 ## THE BUILD ORDER (consensus across all four blueprints)
 0. **Clear the 3 fires** (DB, quick-entry, PAT).

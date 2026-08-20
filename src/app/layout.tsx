@@ -25,18 +25,18 @@ export const metadata = {
     type: 'website',
     images: [
       {
-        url: 'https://conciousnessrevolution.io/images/og-case-builder-hq.png',
+        url: 'https://chat.100xbuilder.io/og-main-chat.png',
         width: 1200,
         height: 630,
-        alt: 'Main Chat',
+        alt: 'Main Chat — Build Guild, Case Builder, Builder Revolution',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Main Chat',
-    description: 'Secure workspace for case builders. AI crunch engine, pattern library, private rooms.',
-    images: ['https://conciousnessrevolution.io/images/og-case-builder-hq.png'],
+    description: 'The chat home of the Builder Revolution — Build Guild, Case Builder, and every builder room in one place.',
+    images: ['https://chat.100xbuilder.io/og-main-chat.png'],
   },
 };
 

@@ -41,34 +41,46 @@ export const {
 
         const input = name.trim();
         const isEmail = input.includes('@') && input.includes('.');
-        const username = input.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-@.]/g, '');
-        const email = isEmail ? input.toLowerCase() : `${username}@community.local`;
+        // Quick-entry is PASSWORDLESS, so it lives in its own synthetic
+        // @community.local namespace and may never mint or resume a real-email
+        // identity. This is the fix for the account-takeover hole: typing an
+        // existing user's name used to log you in AS them (incl. "Commander").
+        const guestUsername = (isEmail ? input.split('@')[0] : input)
+          .toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'guest';
+        const guestEmail = `${guestUsername}@community.local`;
+
+        // RESERVED — privileged/system identities can NEVER be entered
+        // passwordlessly; they must use real OAuth login.
+        const RESERVED = new Set(['commander','admin','administrator','araya','root','owner','staff','moderator','mod','system','support','official','superadmin','sysadmin','team','help']);
+        if (RESERVED.has(guestUsername) || RESERVED.has(input.toLowerCase())) return null;
 
         // INVITE-ONLY: check input against allowlist before creating user
         if (process.env.INVITE_ONLY === 'true') {
           const allowList = (process.env.ALLOWED_USERS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
           if (allowList.length > 0) {
-            const slugName = input.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-            if (!allowList.includes(email) && !allowList.includes(slugName) && !allowList.includes(input.toLowerCase())) {
+            const realEmail = isEmail ? input.toLowerCase() : '';
+            if (!allowList.includes(realEmail) && !allowList.includes(guestUsername) && !allowList.includes(input.toLowerCase())) {
               return null;
             }
           }
         }
 
-        // Find by email first, then username
-        let user = await prisma.user.findFirst({
-          where: isEmail ? { email } : { username },
+        // Resume an existing GUEST account only. A real account (OAuth-linked,
+        // or any non-@community.local verified email) may never be entered by
+        // typing its name — those must sign in for real.
+        const existing = await prisma.user.findFirst({
+          where: { OR: [{ email: guestEmail }, { username: guestUsername }] },
+          include: { accounts: { select: { id: true }, take: 1 } },
         });
-
-        if (!user) {
-          user = await prisma.user.create({
-            data: {
-              username: isEmail ? email.split('@')[0] : username,
-              name: isEmail ? email.split('@')[0] : input,
-              email,
-            },
-          });
+        if (existing) {
+          const isGuest = (existing.email || '').endsWith('@community.local') && existing.accounts.length === 0;
+          if (!isGuest) return null;
+          return { id: existing.id, name: existing.name, email: existing.email };
         }
+
+        const user = await prisma.user.create({
+          data: { username: guestUsername, name: isEmail ? guestUsername : input, email: guestEmail },
+        });
 
         return { id: user.id, name: user.name, email: user.email };
       },
