@@ -11,6 +11,35 @@ import { CommunityReportButton } from './CommunityReportButton';
 
 const ALL = 'All';
 
+// Per-room orientation shown when a room has no posts yet, so a fresh room
+// reads as "waiting for you" instead of "broken/dead" at grand opening.
+const ROOM_INTROS: Record<string, { emoji: string; title: string; blurb: string; prompt: string }> = {
+  'build-guild': {
+    emoji: '🛠️',
+    title: 'Welcome to the Build Guild',
+    blurb: 'The developer hall of the Builder Revolution — say what you\'re building, claim a work order, ship it, and post the evidence back.',
+    prompt: 'Introduce yourself and what you\'re building.',
+  },
+  'case-builder': {
+    emoji: '⚖️',
+    title: 'Welcome to Case Builder',
+    blurb: 'The room for the legal and case-building crew — organize the facts, share the pattern, and help each other build the record.',
+    prompt: 'Share what case or pattern you\'re working on.',
+  },
+  'builder-revolution': {
+    emoji: '🚀',
+    title: 'Welcome to the Builder Revolution',
+    blurb: 'The catch-all room for everyone building toward sovereignty — the movement that turns survival into systems.',
+    prompt: 'Say hello and what brought you here.',
+  },
+};
+const DEFAULT_INTRO = {
+  emoji: '💬',
+  title: 'This room is just getting started',
+  blurb: 'No posts here yet.',
+  prompt: 'Be the first to share.',
+};
+
 export function CommunityFeed({
   slug,
   brand,
@@ -108,9 +137,22 @@ export function CommunityFeed({
       {isLoading ? (
         <p className="text-sm opacity-60" style={{ color: brand.text }}>Loading…</p>
       ) : posts.length === 0 ? (
-        <p className="rounded-xl p-6 text-center text-sm opacity-60" style={{ background: brand.panel, color: brand.text }}>
-          Nothing here yet. Be the first to share.
-        </p>
+        (() => {
+          const intro = ROOM_INTROS[slug] ?? DEFAULT_INTRO;
+          return (
+            <div
+              className="rounded-xl p-8 text-center"
+              style={{ background: brand.panel, color: brand.text, border: `1px solid ${brand.line}` }}
+            >
+              <div className="mb-3 text-4xl">{intro.emoji}</div>
+              <h2 className="mb-2 text-lg font-bold">{intro.title}</h2>
+              <p className="mx-auto mb-4 max-w-md text-sm opacity-80">{intro.blurb}</p>
+              <p className="text-sm font-semibold" style={{ color: brand.accent }}>
+                {canPost ? intro.prompt : 'Sign in above to be the first to post.'}
+              </p>
+            </div>
+          );
+        })()
       ) : (
         <div className="flex flex-col gap-3">
           {posts.map((post) => (
