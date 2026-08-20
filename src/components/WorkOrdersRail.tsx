@@ -1,7 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { apiUrl } from '@/lib/apiUrl';
 import { VideoRoomButton } from '@/components/VideoRoom';
+
+// The seeded ARAYA user — the "ARAYA" ability opens an in-chat DM with her
+// (she replies live) instead of bouncing users out to an external page.
+const ARAYA_USER_ID = 'cmqhkyfrb0001xtb8nh1tytw1';
 
 interface BoardCard {
   id: string;
@@ -32,10 +38,11 @@ const BOARD_FEED_URL = 'https://100xbuilder.io/.netlify/functions/board-feed?gro
 const BOARD_HOME_URL = 'https://100xbuilder.io/dev-board.html';
 
 // The real builder tools this room houses. Every URL verified 200 (S436).
-const ABILITIES: { emoji: string; label: string; href: string }[] = [
+// `action: 'araya'` opens an in-chat DM with ARAYA (verified live) instead of href.
+const ABILITIES: { emoji: string; label: string; href: string; action?: 'araya' }[] = [
   { emoji: '🚀', label: 'Dev Pack', href: 'https://100xbuilder.io/dev-pack-guide.html' },
   { emoji: '📋', label: 'Claim Work', href: 'https://100xbuilder.io/dev-board.html' },
-  { emoji: '⚡', label: 'ARAYA', href: 'https://100xbuilder.io/araya-chat.html' },
+  { emoji: '⚡', label: 'Ask ARAYA', href: 'https://100xbuilder.io/araya-chat.html', action: 'araya' },
 ];
 
 // Lanes builders care about first; everything else follows, alphabetically.
@@ -150,6 +157,27 @@ export function WorkOrdersRail(identity: BuilderIdentity = {}) {
   const [columns, setColumns] = useState<BoardColumn[] | null>(null);
   const [error, setError] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set(LANE_PRIORITY));
+  const router = useRouter();
+
+  // Open (or reuse) an in-chat DM with ARAYA and land there. Falls back to her
+  // profile if the id ever drifts, so the button never dead-ends.
+  const openArayaDm = useCallback(async () => {
+    try {
+      const res = await fetch(apiUrl('/api/conversations'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: ARAYA_USER_ID, type: 'DM' }),
+      });
+      if (res.ok) {
+        const conv = await res.json().catch(() => null);
+        router.push(conv?.id ? `/messages?c=${conv.id}` : '/messages');
+      } else {
+        router.push('/araya');
+      }
+    } catch {
+      router.push('/araya');
+    }
+  }, [router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -211,31 +239,38 @@ export function WorkOrdersRail(identity: BuilderIdentity = {}) {
       {/* ── GUILD ABILITIES: house the tools, not just the work orders ── */}
       <div style={SECTION_LABEL}>Guild Abilities</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '12px 14px' }}>
-        {ABILITIES.map((a) => (
-          <a
-            key={a.label}
-            href={a.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              padding: '8px 6px',
-              borderRadius: '8px',
-              background: 'rgba(0,230,150,0.08)',
-              border: '1px solid rgba(0,230,150,0.18)',
-              color: '#8fe9c4',
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              textDecoration: 'none',
-            }}
-          >
-            <span>{a.emoji}</span>
-            <span>{a.label}</span>
-          </a>
-        ))}
+        {ABILITIES.map((a) => {
+          const abilityStyle = {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            padding: '8px 6px',
+            borderRadius: '8px',
+            background: 'rgba(0,230,150,0.08)',
+            border: '1px solid rgba(0,230,150,0.18)',
+            color: '#8fe9c4',
+            fontSize: '0.72rem',
+            fontWeight: 700,
+            textDecoration: 'none',
+            cursor: 'pointer',
+          } as const;
+          // ARAYA opens an in-chat DM (she replies live) — stay in the app.
+          if (a.action === 'araya') {
+            return (
+              <button key={a.label} type="button" onClick={openArayaDm} style={abilityStyle}>
+                <span>{a.emoji}</span>
+                <span>{a.label}</span>
+              </button>
+            );
+          }
+          return (
+            <a key={a.label} href={a.href} target="_blank" rel="noopener noreferrer" style={abilityStyle}>
+              <span>{a.emoji}</span>
+              <span>{a.label}</span>
+            </a>
+          );
+        })}
         <VideoRoomButton
           roomId="build-guild"
           label="Video Room"
