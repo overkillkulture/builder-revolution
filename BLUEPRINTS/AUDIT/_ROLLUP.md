@@ -61,10 +61,12 @@ Dimensions: async/await · deep IDOR (all 37 routes) · frontend · input-valida
 **Crash/DoS (commit b53cc19):** pagination NaN→500 + unbounded limit→table-scan DoS on public GETs (usePostsSorter/users/notifications/messages, all clamped 1..50/100); NaN conversationId→500 guarded + 4000-char message cap; conversations POST whitelists `type` (a client could mint auto-join CHANNELs), verifies targetUserId, rejects self-DM, dedupes members, try/catch; rooms POST dedupe/validate/try-catch; room-invite DELETE 500-on-non-member → deleteMany/404; self-follow (count inflation) rejected.
 **Correctness (commit 934ebef):** failed post-delete now rolls back (was: post vanished permanently on a failed delete — wrong react-query key).
 
-## DEFERRED — real, but verifying live > staging blind (Railway paused; do when deploys resume)
-- **Comment/reply count freeze:** counts only update via Pusher; if Pusher isn't configured they never move. Fix = optimistic increment, but it interacts with the Pusher NEW_COMMENT handler (double-count risk for the sender) — needs live verification.
-- **Message-send failure UX:** optimistic bubble stays then vanishes on next poll (no error). Frontend state-merge.
-- **Minor:** edit-profile portfolio silent-save-failure; community composer collapses 401 to generic error; "mark all read" badge ~5s lag.
+## DONE — loop 10 (S446, deferred cosmetic batch — commit 3ae636c)
+- **Comment/reply count freeze FIXED:** bump optimistically only when Pusher is OFF (gated on `NEXT_PUBLIC_PUSHER_KEY` — no double-count when it's on) + added the missing reply-count bump to the Pusher NEW_REPLY handler; dedup-aware list adds.
+- **Message-send failure UX FIXED:** failed send now removes the optimistic bubble + shows a specific toast (401→sign in, 403→can't post, else generic/connection) instead of silently lingering-then-vanishing.
+- **Notif badge lag FIXED:** mark-one/all-read now clears the unread count immediately (was ~5s).
+- **Community composer 401 FIXED:** expired session says "sign in again" not generic "try again".
+- **Edit-profile portfolio FIXED:** save failure surfaced + no longer navigates away dropping the links.
 
 ## RULED OUT — confirmed NON-bugs (so they're not re-chased)
 - Username seeded from `id`: `User.id` is a CUID (alphanumeric), passes the username regex — not a UUID. No bug.
