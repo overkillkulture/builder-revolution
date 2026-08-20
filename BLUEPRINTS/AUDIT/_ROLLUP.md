@@ -44,6 +44,11 @@
 - **Build Guild first impression FIXED:** newcomers were greeted by stale "the app is broken" bug posts (bugs now fixed). Removed 3 pure-test posts (backed up to `~/.secrets`), posted an ARAYA **ship-update** at top ("wave of fixes, all live…") — turns "broken" into "responsive team shipping." Live-verified.
 - **Mobile arrival swept:** logged-out room view (clear "Sign in to join" CTA), login, post-login /main — all clean.
 
+## DONE — loop 5 (S446, DM + ARAYA + routing)
+- **ARAYA-in-chat VERIFIED working (the differentiator):** DM'd ARAYA "what is the Build Guild?" → she replied in ~13s WITH the development-edge honesty ("…still in-progress with some UI tweaks needed"). Users can DM ARAYA and get intelligent, honest answers. Live-verified.
+- **DM flow VERIFIED:** profile → Message → creates/opens a DM; send + receive works.
+- **Fixed: "Message <user>" mis-routing** — the button created the DM but navigated to /messages with no target, so auto-select-General won (click "Message ARAYA" → landed in #General). Now passes `?c=<id>` and the messenger opens that conversation. Deploying.
+
 ## OPEN — needs Commander decision (not shipped, by design)
 - **Empty headline rooms:** seeded with a welcome; real ongoing content is organic (people posting). Improved empty-state ships now; actual seed content should come from a real voice (not AI impersonating Commander — deliberately avoided).
 - **Offbrand toolbar / floating pink bug button:** Commander flagged twice. Replacing Munia's MenuBar with the canonical CR dock is a real React port (own worker), not this wave.
