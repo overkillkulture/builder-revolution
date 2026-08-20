@@ -49,6 +49,17 @@
 - **DM flow VERIFIED:** profile → Message → creates/opens a DM; send + receive works.
 - **Fixed: "Message <user>" mis-routing** — the button created the DM but navigated to /messages with no target, so auto-select-General won (click "Message ARAYA" → landed in #General). Now passes `?c=<id>` and the messenger opens that conversation. Deploying.
 
+## DONE — loop 6 (S446, adversarial security + correctness audit; STAGED — Railway deploys paused)
+Two parallel audit agents (security + correctness), every finding verified by me against source before staging.
+- **🔴 CRITICAL auth bypass FIXED (5 sites):** `verifyAccessToPost/Comment/Notification` are `async` but were called `if (!verify...(id))` WITHOUT await → `!Promise` always false → every object-level check was DEAD. Before fix: **anyone (even logged-out) could DELETE any post/comment + purge its S3 media**; any logged-in user could overwrite anyone's post/comment. Fixed with `await` (helpers already scope by session user, so this also 403s the unauthenticated case). Commit dcd0a14.
+- **🟠 SSRF FIXED in /api/ai:** client `x-ai-endpoint` header let any authed caller make the server fetch an arbitrary URL + reflect the reply (cloud-metadata/mesh/internal pivot). Endpoint is now server-config-only; BYOK-key preserved. Commit f97cfa0.
+- **🟠 Community @mentions FIXED:** the 3 headline rooms stored raw content — no mention-resolution, no notification. Now mirrors the main feed (link + POST_MENTION). Commit 4cff7c7.
+
+## FLAGGED — needs Commander decision (not changed unilaterally)
+- **`GET /api/bugs` is public (no auth)** — leaks all bug reports (reporter names, page paths, attachment URLs) to anyone. BUT it's a documented ops feature (`reference_main-chat-access-recipe`: "read them all live with no auth"). Gating it breaks that workflow. Decide: gate + update the recipe to an authed read, or accept the leak.
+- **Message-send failure UX (medium):** on a non-OK send the optimistic bubble stays then vanishes on the next 3s poll (no error shown); polling does a blind full-replace that can flicker just-sent messages. Real, but a frontend state-merge change — deferring until Railway resumes so I can verify live (won't stage blind).
+- **Low:** bug-attachment upload takes client content-type unauthenticated (host-arbitrary-content abuse); forced group/DM membership (spam vector); notif badge ~5s lag; ARAYA @-trigger over-matches on substring (ARAYA window's lane).
+
 ## OPEN — needs Commander decision (not shipped, by design)
 - **Empty headline rooms:** seeded with a welcome; real ongoing content is organic (people posting). Improved empty-state ships now; actual seed content should come from a real voice (not AI impersonating Commander — deliberately avoided).
 - **Offbrand toolbar / floating pink bug button:** Commander flagged twice. Replacing Munia's MenuBar with the canonical CR dock is a real React port (own worker), not this wave.
