@@ -21,7 +21,8 @@ async function verifyAccessToNotification(notificationId: number) {
 
 export async function PATCH(request: Request, { params }: { params: { userId: string; notificationId: string } }) {
   const notificationId = parseInt(params.notificationId, 10);
-  if (!verifyAccessToNotification(notificationId)) return NextResponse.json({}, { status: 403 });
+  // async — MUST await, else the ownership check is dead (S446 security fix).
+  if (!(await verifyAccessToNotification(notificationId))) return NextResponse.json({}, { status: 403 });
 
   await prisma.activity.update({
     where: {

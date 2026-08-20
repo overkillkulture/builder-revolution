@@ -33,7 +33,9 @@ export async function serverWritePost({ formData, type, postId }: Props) {
   const userId = user.id;
 
   if (type === 'edit') {
-    if (!verifyAccessToPost(postId)) {
+    // async — MUST await, else the ownership check is dead and any logged-in
+    // user could overwrite anyone's post + wipe its media (S446 security fix).
+    if (!(await verifyAccessToPost(postId))) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
   }

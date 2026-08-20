@@ -21,7 +21,8 @@ export async function PUT(request: Request, { params }: { params: { commentId: s
   const userId = user?.id;
   const commentId = parseInt(params.commentId, 10);
 
-  if (!verifyAccessToComment(commentId)) {
+  // async — MUST await, else the ownership check is dead (S446 security fix).
+  if (!(await verifyAccessToComment(commentId))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 

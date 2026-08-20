@@ -10,7 +10,10 @@ import { verifyAccessToPost } from './verifyAccessToPost';
 
 export async function DELETE(request: Request, { params }: { params: { postId: string } }) {
   const postId = parseInt(params.postId, 10);
-  if (!verifyAccessToPost(postId)) {
+  // NOTE: verifyAccessToPost is async — it MUST be awaited. Without await,
+  // `!Promise` is always false, so the ownership check was dead and ANY caller
+  // (even unauthenticated) could delete ANY post + its media. (S446 security fix)
+  if (!(await verifyAccessToPost(postId))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 

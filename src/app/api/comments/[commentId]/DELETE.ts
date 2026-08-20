@@ -11,7 +11,8 @@ import { verifyAccessToComment } from './verifyAccessToComment';
 export async function DELETE(request: Request, { params }: { params: { commentId: string } }) {
   const [user] = await getServerUser();
   const commentId = parseInt(params.commentId, 10);
-  if (!verifyAccessToComment(commentId)) {
+  // async — MUST await, else the ownership check is dead (S446 security fix).
+  if (!(await verifyAccessToComment(commentId))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
