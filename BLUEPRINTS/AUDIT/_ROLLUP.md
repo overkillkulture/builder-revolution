@@ -13,7 +13,7 @@
 ## VIEW STATUS
 | View | Route | Status | Grade | Next |
 |------|-------|--------|-------|------|
-| V1 Main | `/main` | ✅ loads, 0 console errors, full Slack messenger + Guild rail | B+ | curate legacy channels (#alerts/#Finance noise) — **Commander product call** |
+| V1 Main | `/main` | ✅ loads, 0 console errors; **channel list CURATED** 8→3 (#General/#Lobby/#Builders) | A- | — |
 | V2 Community | `/community/[slug]` | ✅ 3 rooms load, 0 errors, crash dead | B | seed/animate the 2 empty headline rooms |
 | V3 Messages | `/messages` | ✅ present (DM system) | B | not deep-audited this wave |
 | V5 Profile | `/[username]` | — | — | show platform rank (moat) — next wave |
@@ -29,8 +29,11 @@
 6. **Bug image attachments** — verified WORKING end-to-end live (upload → 200 + retrievable). The "broken" note was stale (pre-S444). Tiger's request already satisfied.
 7. **Room-aware empty state** — the 2 empty headline rooms now show a per-room welcome/first-post card instead of "Nothing here yet."
 
+## DONE — channel curation (S446 follow-up)
+- **/main channel list CURATED 8→3.** API `/api/channels` now hides SYSTEM_CHANNELS (the #alerts bug-bot/email firehose) + shows only ACTIVE channels (≥3 msgs OR active in 14d). Live-verified: {#General, #Lobby, #Builders}, 0 console errors.
+- **OPSEC cleanup:** removed 7 empty (0-msg) conversations from the DB — 5 case-name channels (`preble-v-preble`, `eden-pierce`, `san-diego-mothers`, `andrea-ebbing`, `dina-sarkisova`) that were latent in the DB + 2 test rooms. Backed up to `~/.secrets/deleted-channels-backup-S446.json` (kept OUT of git — those names must never hit GitHub). Reversible.
+
 ## OPEN — needs Commander decision (not shipped, by design)
-- **Channel curation on /main:** legacy channels (#alerts firehose, #Finance, #Direct "Test Ping", #Guardian) clutter the guild view. Deleting/renaming is a data + product decision.
 - **Empty headline rooms:** Case Builder & Builder Revolution have 0 posts. Improved empty-state ships now; actual seed content should come from a real voice (not AI impersonating Commander — deliberately avoided).
 - **Offbrand toolbar / floating pink bug button:** Commander flagged twice. Replacing Munia's MenuBar with the canonical CR dock is a real React port (own worker), not this wave.
 
