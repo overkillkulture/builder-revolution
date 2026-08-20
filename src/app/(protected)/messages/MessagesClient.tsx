@@ -256,6 +256,11 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
     <div className={embedded ? '' : 'px-4 pt-4'}>
       {!embedded && <h1 className="mb-4 text-4xl font-bold">Messages</h1>}
       <div
+        // On phones (chatscope responsive) the sidebar is CSS-hidden while a
+        // conversation is open. cs-view-list / cs-view-chat let globals.css show
+        // the FULL-WIDTH channel list when nothing is selected (Back arrow sets
+        // activeConv=null), so mobile users can still switch channels.
+        className={activeConv ? 'cs-view-chat' : 'cs-view-list'}
         style={{
           height: 'calc(100vh - 160px)',
           borderRadius: '12px',

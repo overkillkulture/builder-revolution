@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile messenger (chatscope) list<->chat toggle. chatscope's responsive mode
+   hides the channel sidebar at <=576px whenever the container is open, which
+   left mobile users with no way back to the channel list. When no conversation
+   is active (.cs-view-list) we show the sidebar full-width and hide the empty
+   chat pane; when one is active, chatscope's default (chat full-width + Back
+   arrow) applies. Only affects phones — desktop is untouched. */
+@media (max-width: 576px) {
+  .cs-view-list .cs-sidebar.cs-sidebar--left {
+    display: flex !important;
+    flex-basis: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+  }
+  .cs-view-list .cs-sidebar .cs-conversation__content,
+  .cs-view-list .cs-sidebar .cs-conversation__last-activity-time {
+    display: block !important;
+  }
+  .cs-view-list .cs-chat-container {
+    display: none !important;
+  }
+}
+
 @layer base {
   /* Consciousness Revolution Theme — Dark by default */
   :root {
