@@ -162,6 +162,20 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
   // fall back to the first room/conversation. Runs once (autoSelectedRef).
   useEffect(() => {
     if (autoSelectedRef.current || loading || activeConv !== null) return;
+    // Honor ?c=<id> from a "Message <user>" click — open THAT conversation
+    // instead of the General auto-select (was: click Message -> dumped in General).
+    const targetId = typeof window !== 'undefined' ? Number(new URLSearchParams(window.location.search).get('c')) : NaN;
+    if (targetId && !Number.isNaN(targetId)) {
+      const inConv = conversations.find((c) => c.id === targetId);
+      const inRoom = rooms.find((r) => r.id === targetId);
+      const inChan = channels.find((ch) => ch.id === targetId);
+      if (inConv || inRoom || inChan) {
+        autoSelectedRef.current = true;
+        setActiveConv(targetId);
+        setActiveType(inConv ? 'dm' : inRoom ? 'room' : 'channel');
+        return;
+      }
+    }
     // Prefer landing in the shared "General" town-square channel so everyone
     // arrives in the same team room (MC-26); otherwise fall back to the most
     // recently active conversation.

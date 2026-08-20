@@ -32,7 +32,9 @@ export function ProfileActionButtons({ targetUserId }: { targetUserId: string })
       body: JSON.stringify({ targetUserId, type: 'DM' }),
     });
     if (res.ok) {
-      router.push('/messages');
+      // Open the DM we just created/found — not the General auto-select.
+      const conv = await res.json().catch(() => null);
+      router.push(conv?.id ? `/messages?c=${conv.id}` : '/messages');
     }
   }, [targetUserId, router]);
 
