@@ -78,6 +78,12 @@ Two deeper finders. Verified vs source; several also verified live in prod.
 - **ARAYA feed @mention FIXED (d72b4fc):** detection ran on CONVERTED content (@araya→@<cuid>) so she never replied to feed mentions; now uses raw content (comments+replies). + like/comment double-click P2002→500→optimistic-rollback desync → try/catch 409. + NaN guards on postId/commentId/roomId.
 - **Duplicate DMs FIXED (2051fd5):** find-then-create TOCTOU → double-click made two DMs for a pair. Added nullable @unique `dmKey` + upsert (schema change via db push; existing DMs fall back to membership match).
 
+## DONE — loop 9 (S446, 3 flagged decisions knocked out + ARAYA bug-landing traced) — Commander-directed
+- **`GET /api/bugs` gated (LIVE-VERIFIED 401):** was fully public (dumped every reporter/pages/attachments). Now requires a session; ops reads via DB. Recipe memory updated.
+- **Guest identities EPHEMERAL (LIVE-VERIFIED):** quick-entry no longer resumes a guest by name (name-only resume = read their DMs). Two same-name logins now make two distinct accounts (`eph-check` + `eph-check-5oko`). Real/OAuth accounts still blocked. Persistence = OAuth.
+- **Session revocation:** `getServerUser` re-checks the user row exists — a deleted user's ≤90-day JWT no longer grants access (also turns the stale-session 500s into clean 401s).
+- **ARAYA/ElevenLabs bug landing TRACED (Commander q):** her voice/chat bug tool (`100X_DEPLOYMENT/netlify/functions/araya-tool-bugs.mjs`) files to Supabase **`araya_bugs`** (128 rows, live) + GitHub **`overkor-tek/consciousness-bugs`** (127/128 filed). NOT the chat `bugReport` table. Repo moved from `overkillkulture` (CLAUDE.md still says the old one). Memory: [[reference_araya-bug-landing]].
+
 ## FLAGGED — needs Commander decision (not changed unilaterally)
 - **Guest identity resume is name-only:** anyone typing an existing guest's name (or a normalization-equal) resumes THAT guest and can read their DMs. Inherent to passwordless. Decision: make guest sessions ephemeral (no name-resume) vs keep frictionless resume. (Real accounts are already protected.)
 - **Deleted/banned user keeps access ≤90 days** (JWT maxAge; getServerUser doesn't re-check liveness) — needs a session-revocation mechanism.
