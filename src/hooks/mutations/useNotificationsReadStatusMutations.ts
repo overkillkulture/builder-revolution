@@ -10,6 +10,9 @@ export function useNotificationsReadStatusMutations() {
   const { data: session } = useSession();
   const userId = session?.user.id;
   const queryKey = ['users', userId, 'notifications'];
+  // The unread badge reads this count query separately; the mark-read mutations
+  // never updated it, so the badge lagged until its 5s refetch (S446).
+  const countKey = ['users', userId, 'notifications', 'count'];
 
   const markAsReadMutation = useMutation({
     mutationFn: async ({ notificationId }: { notificationId: number }) => {
@@ -53,11 +56,15 @@ export function useNotificationsReadStatusMutations() {
         };
       });
 
+      // Clear the unread badge immediately (one fewer unread).
+      qc.setQueryData<number>(countKey, (c) => (typeof c === 'number' ? Math.max(0, c - 1) : c));
+
       // Return a context object with the snapshotted value
       return { previousNotifications };
     },
     onError: (err, variables, context) => {
       qc.setQueryData(queryKey, context?.previousNotifications);
+      qc.invalidateQueries({ queryKey: countKey });
     },
   });
 
@@ -94,11 +101,15 @@ export function useNotificationsReadStatusMutations() {
         };
       });
 
+      // Clear the unread badge immediately.
+      qc.setQueryData<number>(countKey, 0);
+
       // Return a context object with the snapshotted value
       return { previousNotifications };
     },
     onError: (err, variables, context) => {
       qc.setQueryData(queryKey, context?.previousNotifications);
+      qc.invalidateQueries({ queryKey: countKey });
     },
   });
 

@@ -43,6 +43,16 @@ export function usePostRealtime(postId: number) {
         if (old.some((r) => r.id === data.reply.id)) return old;
         return [...old, data.reply];
       });
+      // Bump the parent comment's "Show N replies" counter (nothing updated it
+      // before, so it stayed frozen). Unconditional per event, like NEW_COMMENT.
+      qc.setQueryData<GetComment[]>(['posts', postId, 'comments'], (old) =>
+        old
+          ? old.map((c) =>
+              c.id === data.parentId
+                ? { ...c, _count: { ...c._count, replies: c._count.replies + 1 } }
+                : c,
+            )
+          : old);
     });
 
     channel.bind(EVENTS.POST_LIKED, (data: { postId: number; count: number }) => {

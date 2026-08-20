@@ -30,6 +30,7 @@ export function EditProfileForm({ redirectTo }: { redirectTo?: string }) {
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [customSkill, setCustomSkill] = useState('');
   const [savingLinks, setSavingLinks] = useState(false);
+  const [linksError, setLinksError] = useState('');
 
   const defaultValues = useMemo(
     () => ({
@@ -90,19 +91,29 @@ export function EditProfileForm({ redirectTo }: { redirectTo?: string }) {
     setPortfolioLinks((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  const savePortfolioLinks = useCallback(async (userId: string) => {
+  const savePortfolioLinks = useCallback(async (userId: string): Promise<boolean> => {
     const validLinks = portfolioLinks.filter((l) => l.title.trim() && l.url.trim());
-    if (validLinks.length === 0) return;
+    if (validLinks.length === 0) return true;
 
     setSavingLinks(true);
+    setLinksError('');
     try {
-      await fetch(apiUrl(`/api/users/${userId}/portfolio`), {
+      const res = await fetch(apiUrl(`/api/users/${userId}/portfolio`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ links: validLinks }),
       });
+      // Was fire-and-forget: a failed save was swallowed and the user was
+      // navigated away as if it worked, silently losing their links (S446).
+      if (!res.ok) {
+        setLinksError('Your profile saved, but your links didn’t — tap Save again.');
+        return false;
+      }
+      return true;
     } catch (e) {
       console.error('Failed to save portfolio links', e);
+      setLinksError('Your profile saved, but your links didn’t (connection) — tap Save again.');
+      return false;
     } finally {
       setSavingLinks(false);
     }
@@ -127,10 +138,10 @@ export function EditProfileForm({ redirectTo }: { redirectTo?: string }) {
           setFocus(field);
         },
         onSuccess: async () => {
-          if (userData?.id) {
-            await savePortfolioLinks(userData.id);
-          }
-          router.push(redirectTo || `/${data.username}`);
+          // Only navigate away if the links also saved — otherwise stay so the
+          // user sees the error and can retry (don't silently drop their links).
+          const linksOk = userData?.id ? await savePortfolioLinks(userData.id) : true;
+          if (linksOk) router.push(redirectTo || `/${data.username}`);
         },
       },
     );
@@ -355,6 +366,9 @@ export function EditProfileForm({ redirectTo }: { redirectTo?: string }) {
           </div>
         </div>
 
+        {linksError && (
+          <p className="text-right text-xs text-destructive-foreground">{linksError}</p>
+        )}
         <div className="flex justify-end gap-4">
           <Button
             mode="secondary"

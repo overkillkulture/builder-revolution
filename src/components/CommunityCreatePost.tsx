@@ -20,6 +20,7 @@ export function CommunityCreatePost({
   const [content, setContent] = useState('');
   const [category, setCategory] = useState(defaultCategory ?? brand.categories[0]);
   const [status, setStatus] = useState<'idle' | 'sending' | 'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState('Couldn’t post — try again.');
 
   const submit = useCallback(async () => {
     if (!content.trim()) return;
@@ -30,12 +31,19 @@ export function CommunityCreatePost({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, category }),
       });
-      if (!res.ok) throw new Error('failed');
+      if (!res.ok) {
+        // A 401 (expired session) used to read as the generic "try again", so the
+        // user retried forever instead of re-signing-in (S446).
+        setErrorMsg(res.status === 401 ? 'Please sign in again to post.' : 'Couldn’t post — try again.');
+        setStatus('error');
+        return;
+      }
       const post = (await res.json()) as GetPost;
       onCreated(post);
       setContent('');
       setStatus('idle');
     } catch {
+      setErrorMsg('Check your connection and try again.');
       setStatus('error');
     }
   }, [content, category, slug, onCreated]);
@@ -68,7 +76,7 @@ export function CommunityCreatePost({
         style={{ color: brand.text, border: `1px solid ${brand.line}` }}
       />
       <div className="mt-2 flex items-center justify-between">
-        {status === 'error' && <p className="text-xs" style={{ color: brand.alert }}>Couldn&apos;t post — try again.</p>}
+        {status === 'error' && <p className="text-xs" style={{ color: brand.alert }}>{errorMsg}</p>}
         <button
           type="button"
           onClick={submit}

@@ -17,6 +17,7 @@ import {
   TypingIndicator,
 } from '@chatscope/chat-ui-kit-react';
 import { VideoRoomButton } from '@/components/VideoRoom';
+import { useToast } from '@/hooks/useToast';
 
 interface UserSummary {
   id: string;
@@ -89,6 +90,7 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
   const [newRoomDesc, setNewRoomDesc] = useState('');
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const autoSelectedRef = useRef(false);
+  const { showToast } = useToast();
 
   // Load conversations
   const loadConversations = useCallback(async () => {
@@ -219,15 +221,24 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
     async (text: string) => {
       if (!activeConv || !text.trim()) return;
 
-      // Optimistic update
+      // Optimistic update (tempId lets us roll it back if the send fails)
+      const tempId = Date.now();
       const optimistic: MessageData = {
-        id: Date.now(),
+        id: tempId,
         content: text,
         createdAt: new Date().toISOString(),
         senderId: userId,
         sender: { id: userId, name: 'You', username: '', profilePhoto: null },
       };
       setMessages((prev) => [...prev, optimistic]);
+
+      const fail = (msg: string) => {
+        // Remove the optimistic bubble so the user isn't shown a message that
+        // didn't send (it used to linger, then vanish on the next 3s poll with
+        // no error). Surface why (S446).
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        showToast({ title: 'Message not sent', message: msg, type: 'error' });
+      };
 
       try {
         const res = await fetch(apiUrl(`/api/conversations/${activeConv}/messages`), {
@@ -237,12 +248,19 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
         });
         if (res.ok) {
           loadMessages(activeConv);
+        } else if (res.status === 401) {
+          fail('Please sign in again.');
+        } else if (res.status === 403) {
+          fail("You can't post to this conversation.");
+        } else {
+          fail('Something went wrong — try again.');
         }
       } catch (e) {
         console.error('Failed to send message', e);
+        fail('Check your connection and try again.');
       }
     },
-    [activeConv, userId, loadMessages],
+    [activeConv, userId, loadMessages, showToast],
   );
 
   const activeConvData = activeType === 'room'
