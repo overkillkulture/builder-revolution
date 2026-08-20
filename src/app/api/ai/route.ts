@@ -27,11 +27,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Message is required' }, { status: 400 });
   }
 
-  // Determine which endpoint to use
-  // Priority: BYOK header > env AI_ENDPOINT > default ARAYA
+  // Determine which endpoint to use.
+  // SECURITY (S446): the endpoint is SERVER config only (AI_ENDPOINT env for
+  // forks, else default ARAYA). A per-request `x-ai-endpoint` header was an SSRF
+  // hole — any authenticated caller could make the server POST to an arbitrary
+  // URL (cloud metadata, localhost/mesh, internal services) and read the reply.
+  // BYOK stays supported via the `x-ai-key` header (the user's KEY, not URL).
   const byokKey = request.headers.get('x-ai-key');
-  const byokEndpoint = request.headers.get('x-ai-endpoint');
-  const endpoint = byokEndpoint || CUSTOM_ENDPOINT || DEFAULT_ENDPOINT;
+  const endpoint = CUSTOM_ENDPOINT || DEFAULT_ENDPOINT;
 
   try {
     // Build the system prompt
