@@ -8,6 +8,17 @@ import { supabase } from '@/lib/s3/s3Client';
 // 404'd and was silently dropped (MC-06).
 const BUCKET = 'bug-attachments';
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+// Raster images ONLY. The bucket is PUBLIC, so allowing client-chosen MIME let
+// anyone host active content (text/html, image/svg+xml with <script>) under our
+// domain = stored XSS/phishing. Force type+extension from this allowlist (S446).
+// Note: SVG is intentionally excluded (it can execute script).
+const ALLOWED_TYPES: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+};
 
 export async function POST(request: Request) {
   const formData = await request.formData();
@@ -23,12 +34,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 413 });
   }
 
-  const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
+  const ext = ALLOWED_TYPES[file.type];
+  if (!ext) {
+    return NextResponse.json({ error: 'Unsupported file type (images only: png, jpg, webp, gif)' }, { status: 415 });
+  }
+  const contentType = file.type === 'image/jpg' ? 'image/jpeg' : file.type;
   const fileName = `bug-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
   const { error } = await supabase.storage.from(BUCKET).upload(fileName, buffer, {
-    contentType: file.type || 'application/octet-stream',
+    contentType,
     upsert: false,
   });
 

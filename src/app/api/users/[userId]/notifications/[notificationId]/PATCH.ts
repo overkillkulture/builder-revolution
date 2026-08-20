@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 
 async function verifyAccessToNotification(notificationId: number) {
   const [user] = await getServerUser();
+  if (!user?.id) return false; // anonymous guard — Prisma drops undefined filters (S446)
   const count = await prisma.activity.count({
     where: {
       id: notificationId,

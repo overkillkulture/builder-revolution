@@ -24,7 +24,11 @@ export default async function Page({
   const session = await auth();
   if (session?.user) {
     const from = searchParams?.from;
-    redirect(from && from.startsWith('/') ? from : '/feed');
+    // Only same-origin absolute paths. `startsWith('/')` alone also matches
+    // `//evil.com` and `/\evil.com`, which browsers resolve as EXTERNAL URLs
+    // (open-redirect / phishing pivot off our domain). Reject those (S446).
+    const safe = !!from && from.startsWith('/') && !from.startsWith('//') && !from.startsWith('/\\');
+    redirect(safe ? from! : '/feed');
   }
   return page();
 }
