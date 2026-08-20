@@ -232,6 +232,12 @@ model Conversation {
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
   createdById String?
+  // Deterministic DM key = the two member ids sorted+joined. @unique so a
+  // double-click / two-tab race can't create duplicate DMs for the same pair
+  // (app-level find-then-create had a TOCTOU window). Nullable: only DMs set it;
+  // pre-existing DMs keep null (multiple nulls allowed) and resolve via the
+  // membership fallback in the POST handler (S446).
+  dmKey       String?              @unique
   members     ConversationMember[]
   messages    Message[]
   community   Community?           @relation(fields: [communityId], references: [id], onDelete: SetNull)

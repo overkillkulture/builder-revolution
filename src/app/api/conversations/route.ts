@@ -86,7 +86,8 @@ export async function POST(request: Request) {
       const target = await prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true } });
       if (!target) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-      // Reuse an existing DM between these two users.
+      // Reuse an existing DM. Pre-dmKey DMs have null dmKey, so match by
+      // membership first (covers historical rows).
       const existing = await prisma.conversation.findFirst({
         where: {
           type: 'DM',
@@ -98,8 +99,13 @@ export async function POST(request: Request) {
       });
       if (existing) return NextResponse.json({ id: existing.id });
 
-      const conversation = await prisma.conversation.create({
-        data: { type: 'DM', members: { create: [{ userId: user.id }, { userId: targetUserId }] } },
+      // New DM: upsert on the deterministic dmKey so a concurrent double-click
+      // can't create two DMs for the same pair (the find-then-create TOCTOU).
+      const dmKey = [user.id, targetUserId].sort().join(':');
+      const conversation = await prisma.conversation.upsert({
+        where: { dmKey },
+        create: { type: 'DM', dmKey, members: { create: [{ userId: user.id }, { userId: targetUserId }] } },
+        update: {},
       });
       return NextResponse.json({ id: conversation.id });
     }
