@@ -263,7 +263,10 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
           border: '1px solid rgba(0, 230, 150, 0.15)',
         }}
       >
-        <MainContainer>
+        {/* responsive: on phones the channel sidebar collapses so the message
+            pane gets full width (was squished to ~1 word per line). The Back
+            button below returns to the channel list. Desktop (>768px) unchanged. */}
+        <MainContainer responsive>
           <Sidebar position="left" style={{ background: '#0e161c', borderRight: '1px solid rgba(0,230,150,0.1)' }}>
             <ConversationList style={{ background: '#0e161c' }}>
               {/* CHANNELS SECTION — the public town square (everyone can read/post) */}
@@ -427,6 +430,9 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
           <ChatContainer style={{ background: '#080c10' }}>
             {activeConvData && (
               <ConversationHeader style={{ background: '#0e161c', borderBottom: '1px solid rgba(0,230,150,0.1)' }}>
+                {/* Back arrow — visible only on mobile (chatscope responsive);
+                    returns to the channel list. */}
+                <ConversationHeader.Back onClick={() => setActiveConv(null)} />
                 <Avatar
                   name={activeConvData.name}
                   style={{
