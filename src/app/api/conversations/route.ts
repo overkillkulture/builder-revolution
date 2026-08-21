@@ -10,7 +10,9 @@ export async function GET() {
   const conversations = await prisma.conversation.findMany({
     where: {
       members: {
-        some: { userId: user.id },
+        // S447: only conversations you've actually joined (active). A pending
+        // invite doesn't show up here until you accept it (see GET /api/invites).
+        some: { userId: user.id, status: 'active' },
       },
     },
     include: {
@@ -36,7 +38,10 @@ export async function GET() {
 
   // Shape the response
   const result = conversations.map((conv) => {
-    const otherMembers = conv.members.filter((m) => m.userId !== user.id);
+    // S447: pending invitees aren't members yet — exclude them from the name and
+    // the member list so a group doesn't display people who haven't accepted.
+    const activeMembers = conv.members.filter((m) => m.status === 'active');
+    const otherMembers = activeMembers.filter((m) => m.userId !== user.id);
     const myMembership = conv.members.find((m) => m.userId === user.id);
     const lastMessage = conv.messages[0] || null;
     const hasUnread = lastMessage && myMembership
@@ -47,7 +52,7 @@ export async function GET() {
       id: conv.id,
       name: conv.name || otherMembers.map((m) => m.user.name).join(', '),
       type: conv.type,
-      members: conv.members.map((m) => m.user),
+      members: activeMembers.map((m) => m.user),
       lastMessage: lastMessage
         ? {
             content: lastMessage.content,
@@ -120,7 +125,16 @@ export async function POST(request: Request) {
       data: {
         name: typeof name === 'string' ? name.slice(0, 100) : null,
         type: 'GROUP',
-        members: { create: realUsers.map((u) => ({ userId: u.id })) },
+        createdById: user.id,
+        // S447 consent: only the creator joins active. Everyone else is PENDING
+        // until they accept — you can't drag strangers into a group and message
+        // them. They see the invite via GET /api/invites and accept to join.
+        members: {
+          create: realUsers.map((u) => ({
+            userId: u.id,
+            status: u.id === user.id ? 'active' : 'pending',
+          })),
+        },
       },
     });
     return NextResponse.json({ id: conversation.id });

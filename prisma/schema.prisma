@@ -259,6 +259,11 @@ model ConversationMember {
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         String
   role           String       @default("member")
+  // S447 membership consent. Defaulted "active" so every existing row, every DM,
+  // and public-CHANNEL lazy-joins are unaffected. A user force-added to a GROUP
+  // or private ROOM is created "pending" instead — they can't read or be messaged
+  // there until they accept (see the respond route). status: active | pending.
+  status         String       @default("active")
   joinedAt       DateTime     @default(now())
   lastReadAt     DateTime     @default(now())
 

@@ -11,7 +11,9 @@ export async function GET() {
     where: {
       type: 'ROOM',
       members: {
-        some: { userId: user.id },
+        // S447: only rooms you've actually joined (active). Pending invites live
+        // in GET /api/invites until accepted.
+        some: { userId: user.id, status: 'active' },
       },
     },
     include: {
@@ -47,11 +49,15 @@ export async function GET() {
       name: room.name || 'Unnamed Room',
       description: room.description,
       type: room.type,
-      members: room.members.map((m) => ({
-        ...m.user,
-        role: m.role,
-      })),
-      memberCount: room.members.length,
+      members: room.members
+        .filter((m) => m.status === 'active')
+        .map((m) => ({
+          ...m.user,
+          role: m.role,
+        })),
+      // S447: pending invitees aren't members yet — count/list only active.
+      memberCount: room.members.filter((m) => m.status === 'active').length,
+      pendingCount: room.members.filter((m) => m.status === 'pending').length,
       myRole: myMembership?.role || 'member',
       lastMessage: lastMessage
         ? {
@@ -95,10 +101,14 @@ export async function POST(request: Request) {
         description: typeof description === 'string' ? description.trim().slice(0, 500) || null : null,
         type: 'ROOM',
         createdById: user.id,
+        // S447 consent: creator joins active as owner; everyone else is PENDING
+        // until they accept the invite (GET /api/invites -> respond). No silent
+        // force-add into a private room.
         members: {
           create: realUsers.map((u) => ({
             userId: u.id,
             role: u.id === user.id ? 'owner' : 'member',
+            status: u.id === user.id ? 'active' : 'pending',
           })),
         },
       },

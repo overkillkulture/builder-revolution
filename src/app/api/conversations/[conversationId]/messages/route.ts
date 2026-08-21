@@ -10,7 +10,10 @@ async function ensureMemberOrGate(conversationId: number, userId: string) {
   const existing = await prisma.conversationMember.findUnique({
     where: { conversationId_userId: { conversationId, userId } },
   });
-  if (existing) return existing;
+  // S447: a PENDING member (invited but not yet accepted) has no access — they
+  // can neither read nor be messaged in the room until they accept. Treat pending
+  // as "not a member" so the caller returns 403.
+  if (existing) return existing.status === 'pending' ? null : existing;
 
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },

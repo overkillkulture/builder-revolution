@@ -45,28 +45,34 @@ export async function POST(
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
-  // Check if already a member
+  // Check if already a member or already invited (pending) — no double-invite.
   const existing = await prisma.conversationMember.findUnique({
     where: {
       conversationId_userId: { conversationId: roomId, userId: targetUser.id },
     },
   });
   if (existing) {
-    return NextResponse.json({ error: 'User is already a member' }, { status: 400 });
+    const msg = existing.status === 'pending' ? 'User is already invited' : 'User is already a member';
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 
-  // Add them
+  // S447 consent: create a PENDING invite, NOT an active membership. The target
+  // isn't in the room and can't be messaged there until they accept it via
+  // GET /api/invites -> POST /api/conversations/:id/respond. Closes the "owner
+  // drags an arbitrary user in and messages them" harassment vector.
   await prisma.conversationMember.create({
     data: {
       conversationId: roomId,
       userId: targetUser.id,
       role: 'member',
+      status: 'pending',
     },
   });
 
   return NextResponse.json({
     success: true,
-    message: `${targetUser.name || targetUser.username} added to ${room.name}`,
+    pending: true,
+    message: `${targetUser.name || targetUser.username} invited to ${room.name} (pending their acceptance)`,
   });
 }
 
