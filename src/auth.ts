@@ -16,7 +16,11 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_MZ5nb
 
 declare module 'next-auth' {
   interface Session {
-    user: { id: string; name: string };
+    // S447: role + status ride in the session so route handlers can authorize
+    // without an extra query, and the protected layout can revoke banned users.
+    // (JWT itself extends Record<string, unknown>, so token.role/status need no
+    // augmentation — only a cast on read in the session callback below.)
+    user: { id: string; name?: string; role: string; status: string };
   }
 }
 
@@ -55,6 +59,7 @@ export const {
   auth,
   handlers: { GET, POST },
   signIn,
+  signOut,
 } = NextAuth({
   ...authConfig,
   providers: [
@@ -183,10 +188,51 @@ export const {
       }
       return true;
     },
-    session({ token, user, ...rest }) {
+    // S447 moderation spine — the loop-free half of session revocation.
+    // This jwt callback runs on every auth() call, but ONLY in the Node runtime
+    // (auth.ts). The edge middleware uses auth.config.ts, which has NO jwt
+    // callback and never touches Prisma — that split is deliberate: the S446
+    // attempt looped because the edge trusted the JWT while a per-request page
+    // DB-check disagreed. Here the enforcement lands in ONE place (the protected
+    // layout -> /removed), never a /login bounce, so there is no loop.
+    async jwt({ token, user }) {
+      // Sign-in: stamp role/status from the freshly-authorized user.
+      if (user?.id) {
+        const u = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { role: true, status: true },
+        });
+        token.role = u?.role ?? 'user';
+        token.status = u?.status ?? 'active';
+        return token;
+      }
+      // Every subsequent request: cheap indexed PK read so a ban takes effect
+      // immediately (and a promoted role refreshes without a re-login). A single
+      // sub-ms lookup per authenticated request — fine at launch scale; the
+      // tokenVersion optimization is the SPAWN in WO-chat-moderation-spine.
+      if (token.sub) {
+        try {
+          const u = await prisma.user.findUnique({
+            where: { id: token.sub },
+            select: { role: true, status: true },
+          });
+          // Deleted user => treat as removed (revoke), not as active.
+          token.status = u ? u.status : 'banned';
+          token.role = u?.role ?? token.role ?? 'user';
+        } catch {
+          // DB blip: keep the prior token. Fail OPEN for availability — banning
+          // is rare, a transient DB error must not log the whole community out.
+        }
+      }
+      return token;
+    },
+    session({ token, ...rest }) {
       return {
         user: {
           id: token.sub!,
+          name: token.name ?? undefined,
+          role: (token.role as string | undefined) ?? 'user',
+          status: (token.status as string | undefined) ?? 'active',
         },
         expires: rest.session.expires,
       };

@@ -27,7 +27,9 @@ export default {
       const isOnAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
       const isApiRoute = pathname.startsWith('/api/');
       const isStaticAsset = pathname.startsWith('/_next/');
-      const isPublicRoute = pathname.startsWith('/meet');
+      // /removed is the terminal page for a banned user (S447) — must stay
+      // reachable when logged-out, or the ban flow can't land anywhere.
+      const isPublicRoute = pathname.startsWith('/meet') || pathname === '/removed';
 
       if (isInviteOnly) {
         // INVITE-ONLY MODE — everything is locked except login page, /meet, and API/assets

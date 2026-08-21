@@ -1,14 +1,17 @@
-import { getServerUser } from '@/lib/getServerUser';
+import { getServerUser, isStaff } from '@/lib/getServerUser';
 import prisma from '@/lib/prisma/prisma';
 import { NextResponse } from 'next/server';
 
-// GET /api/bugs — list bug reports. Requires auth: this returns EVERY report
-// (reporter identity, page paths, attachment URLs) and was fully public — any
-// anonymous visitor could dump the whole bug DB (S446). Ops reads via the DB
+// GET /api/bugs — list bug reports. Admin/staff ONLY: this returns EVERY report
+// (reporter identity, page paths, attachment URLs). It was fully public (any
+// anonymous visitor could dump the whole bug DB, S446), then interim-gated to
+// "any signed-in user" while the chat had no roles. S447 replaces that with the
+// real role gate now that the moderation spine exists. Ops reads via the DB
 // directly (see reference_main-chat-access-recipe), not this endpoint.
 export async function GET() {
   const [user] = await getServerUser();
   if (!user) return NextResponse.json({ error: 'Sign in to view bug reports.' }, { status: 401 });
+  if (!isStaff(user)) return NextResponse.json({ error: 'Admins only.' }, { status: 403 });
   const bugs = await prisma.bugReport.findMany({
     orderBy: { createdAt: 'desc' },
     include: {

@@ -75,6 +75,12 @@ model User {
   communitiesOwned   Community[]
   reportsFiled       Report[]
 
+  // S447 moderation spine. Additive + defaulted so existing rows/old code are unaffected.
+  // role:   user | staff | admin  — gates /api/bugs + admin ban actions
+  // status: active | banned       — loop-free session revocation (see src/auth.ts jwt callback)
+  role               String    @default("user")
+  status             String    @default("active")
+
   @@schema("commsunity")
 }
 
