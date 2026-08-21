@@ -15,11 +15,20 @@ export async function GET() {
   const res = new NextResponse(null, { status: 307, headers: { Location: '/removed' } });
   const store = await cookies();
   for (const c of store.getAll()) {
-    // Auth.js v5 default: authjs.session-token / __Secure-authjs.session-token
-    // (+ chunked .0/.1). Also cover the legacy next-auth.* name. Expire any of
-    // them so the browser drops the credential immediately.
+    // Cover authjs.* and legacy next-auth.* names, __Secure-/__Host- prefixes,
+    // and chunked .0/.1 variants. CRITICAL: a `__Secure-`/`__Host-` cookie is
+    // REJECTED by the browser unless the expiring Set-Cookie ALSO carries
+    // `Secure` (and httpOnly/path to match) — without these the clear silently
+    // no-ops and the banned session survives.
     if (c.name.includes('session-token')) {
-      res.cookies.set(c.name, '', { expires: new Date(0), path: '/', maxAge: 0 });
+      res.cookies.set(c.name, '', {
+        expires: new Date(0),
+        maxAge: 0,
+        path: '/',
+        secure: true,
+        httpOnly: true,
+        sameSite: 'lax',
+      });
     }
   }
   return res;
