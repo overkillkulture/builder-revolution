@@ -7,8 +7,12 @@ import { NextResponse } from 'next/server';
 // on the next request the edge middleware also sees a logged-out user, so it
 // can't bounce them /login -> /main against a page that thinks they're banned.
 // This route lives under /api so the middleware matcher never gates it.
-export async function GET(request: Request) {
-  const res = NextResponse.redirect(new URL('/removed', request.url));
+export async function GET() {
+  // Relative Location (not new URL(..., request.url)): behind Railway's proxy
+  // request.url resolves to the internal host (localhost:8080), which would send
+  // the browser to a dead origin. A relative redirect resolves against the
+  // public origin the browser actually used.
+  const res = new NextResponse(null, { status: 307, headers: { Location: '/removed' } });
   const store = await cookies();
   for (const c of store.getAll()) {
     // Auth.js v5 default: authjs.session-token / __Secure-authjs.session-token
