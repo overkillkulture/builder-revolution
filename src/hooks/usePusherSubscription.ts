@@ -72,26 +72,7 @@ export function usePostRealtime(postId: number) {
   }, [postId, qc]);
 }
 
-/**
- * Subscribe to the global feed channel for new posts.
- */
-export function useFeedRealtime() {
-  const qc = useQueryClient();
-
-  useEffect(() => {
-    const pusher = getPusherClient();
-    if (!pusher) return;
-
-    const channel = pusher.subscribe(CHANNELS.feed);
-
-    channel.bind(EVENTS.NEW_POST, () => {
-      // Invalidate the feed query so it refetches
-      qc.invalidateQueries({ queryKey: ['posts'] });
-    });
-
-    return () => {
-      channel.unbind_all();
-      pusher.unsubscribe(CHANNELS.feed);
-    };
-  }, [qc]);
-}
+// S447: useFeedRealtime() removed — it was dead wiring (never mounted, never
+// triggered server-side, wrong invalidate key). The feed uses a 5s poll. See the
+// note in src/lib/pusher/server.ts to re-add a real-time feed later.
+// (WO-chat-feed-realtime)
