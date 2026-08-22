@@ -77,6 +77,15 @@ interface ChannelData {
   } | null;
 }
 
+interface MemberData {
+  id: string;
+  name: string;
+  username: string;
+  profilePhoto: string | null;
+  role: string;
+  active: boolean;
+}
+
 export function MessagesClient({ userId, embedded = false }: { userId: string; embedded?: boolean }) {
   const [conversations, setConversations] = useState<ConversationData[]>([]);
   const [rooms, setRooms] = useState<RoomData[]>([]);
@@ -84,6 +93,7 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
   const [activeConv, setActiveConv] = useState<number | null>(null);
   const [activeType, setActiveType] = useState<'dm' | 'room' | 'channel'>('dm');
   const [messages, setMessages] = useState<MessageData[]>([]);
+  const [members, setMembers] = useState<MemberData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
@@ -154,6 +164,18 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
     }
   }, []);
 
+  // Load the roster for the Members column (WO-view-03 Phase 2). Public channels
+  // return the whole town-square roster; private rooms/DMs return theirs (or []
+  // on 403). Silent-empty on failure so it never breaks the chat pane.
+  const loadMembers = useCallback(async (convId: number) => {
+    try {
+      const res = await fetch(apiUrl(`/api/conversations/${convId}/members`));
+      setMembers(res.ok ? await res.json() : []);
+    } catch (e) {
+      setMembers([]);
+    }
+  }, []);
+
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
@@ -207,15 +229,19 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
   useEffect(() => {
     if (activeConv) {
       loadMessages(activeConv);
+      loadMembers(activeConv);
       pollRef.current = setInterval(() => {
         loadMessages(activeConv);
         loadConversations();
+        loadMembers(activeConv);
       }, 3000);
+    } else {
+      setMembers([]);
     }
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [activeConv, loadMessages, loadConversations]);
+  }, [activeConv, loadMessages, loadConversations, loadMembers]);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -516,18 +542,27 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
                     Welcome — jump into the conversation
                   </p>
                   <p style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '18px', maxWidth: '340px', lineHeight: 1.5 }}>
-                    Head to the Build Guild room to see what the team is building and post your first message.
+                    Pick a channel on the left to see what the team is building, or jump into the town square and post your first message.
                   </p>
-                  <a
-                    href="/community/build-guild"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Land in the shared town square (# general) if present,
+                      // else the first available channel. Was a link to the
+                      // /community feed, which is retired (redirects here).
+                      const general = channels.find((ch) => /^#?\s*general$/i.test(ch.name)) || channels[0];
+                      if (general) { setActiveConv(general.id); setActiveType('channel'); }
+                    }}
+                    disabled={channels.length === 0}
                     style={{
                       background: '#2ecc71', color: '#03110a', fontWeight: 700,
                       padding: '10px 20px', borderRadius: '10px', fontSize: '0.9rem',
-                      textDecoration: 'none',
+                      border: 'none', cursor: channels.length === 0 ? 'default' : 'pointer',
+                      opacity: channels.length === 0 ? 0.5 : 1,
                     }}
                   >
-                    Enter Build Guild →
-                  </a>
+                    Enter the town square →
+                  </button>
                   <p style={{ fontSize: '0.78rem', opacity: 0.45, marginTop: '14px' }}>
                     Or use “+ Create Private Room” on the left to start a group.
                   </p>
@@ -606,6 +641,53 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
               />
             )}
           </ChatContainer>
+
+          {/* MEMBERS COLUMN (right) — the third column of the Discord/Slack
+              layout (WO-view-03 Phase 2). Shows the active room's roster with an
+              honest "active" dot (membership.lastReadAt within 5 min, not fake
+              presence). chatscope hides right sidebars on phones automatically. */}
+          {activeConvData && members.length > 0 && (
+            <Sidebar position="right" style={{ background: '#0e161c', borderLeft: '1px solid rgba(0,230,150,0.1)', minWidth: '210px' }}>
+              <div style={{ padding: '14px 16px 6px', fontSize: '0.65rem', color: '#39d98a', letterSpacing: '1.5px', fontWeight: 700, textTransform: 'uppercase' as const }}>
+                Members — {members.length}
+              </div>
+              <div style={{ overflowY: 'auto', flex: 1 }}>
+                {members.map((m) => (
+                  <div
+                    key={m.id}
+                    title={m.active ? 'Active recently' : 'Member'}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 16px' }}
+                  >
+                    <span style={{ position: 'relative', flexShrink: 0 }}>
+                      <Avatar
+                        name={m.name}
+                        src={m.profilePhoto || undefined}
+                        size="sm"
+                        style={{ background: 'rgba(0,230,150,0.18)', color: '#00e696' }}
+                      />
+                      <span
+                        style={{
+                          position: 'absolute', bottom: 0, right: 0, width: '9px', height: '9px',
+                          borderRadius: '50%', border: '2px solid #0e161c',
+                          background: m.active ? '#3ba55d' : '#5b6b64',
+                        }}
+                      />
+                    </span>
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'block', color: m.active ? '#e6f4ee' : '#9db3aa', fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {m.name}
+                      </span>
+                      {m.role !== 'member' && (
+                        <span style={{ color: '#39d98a', fontSize: '0.62rem', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>
+                          {m.role}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Sidebar>
+          )}
         </MainContainer>
       </div>
     </div>
