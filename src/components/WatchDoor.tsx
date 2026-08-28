@@ -74,7 +74,11 @@ export function WatchDoor({
           Main Chat
         </p>
         <h1 className="mb-4 text-3xl font-bold sm:text-4xl">{name}</h1>
-        <p className="mb-8 text-base leading-relaxed opacity-80">{intro.blurb}</p>
+        <p className="mb-3 text-base leading-relaxed opacity-80">{intro.blurb}</p>
+        {/* Honesty label (Commander S467): don't hide the rebuild — sign it. */}
+        <p className="mb-8 text-sm opacity-60">
+          Fair warning: this chat is mid-rebuild — a whole system you can get lost in. We build in public.
+        </p>
 
         <Link
           href={`/login?from=/community/${slug}`}
