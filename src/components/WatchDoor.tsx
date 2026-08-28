@@ -17,9 +17,30 @@ const ROOM_INTROS: Record<string, { emoji: string; blurb: string }> = {
   },
   'builder-revolution': {
     emoji: '🚀',
-    blurb: 'The catch-all room for everyone building toward sovereignty — the movement that turns survival into systems.',
+    blurb: 'Build something. Sell it. Meet the people building next to you. Level up. Joining is free — nobody is turned away.',
   },
 };
+
+// The Builder Revolution circuit-sprout mark — same geometry as the business
+// card and /builder-revolution landing page (100X_DEPLOYMENT #br-mark symbol),
+// so the card → landing → chat handoff stays one brand instead of a 🚀 emoji.
+function BrMark({ stroke, dot }: { stroke: string; dot: string }) {
+  return (
+    <svg viewBox="0 0 100 100" className="h-12 w-12" role="img" aria-label="Builder Revolution mark">
+      <g stroke={stroke} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M50 88 L50 40" />
+        <path d="M50 62 L34 62 L34 40" />
+        <path d="M50 62 L66 62 L66 40" />
+        <path d="M22 66 L22 78 L38 90" />
+        <path d="M78 66 L78 78 L62 90" />
+        <circle cx="50" cy="30" r="7" />
+        <circle cx="34" cy="31" r="5" />
+        <circle cx="66" cy="31" r="5" />
+      </g>
+      <circle cx="50" cy="30" r="2.4" fill={dot} />
+    </svg>
+  );
+}
 const DEFAULT_INTRO = {
   emoji: '💬',
   blurb: 'A room inside Main Chat — sign in to read the conversation and join in.',
@@ -46,7 +67,7 @@ export function WatchDoor({
           className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl text-4xl shadow-lg"
           style={{ background: `${brand.accent}22`, border: `1px solid ${brand.accent}55` }}
         >
-          {intro.emoji}
+          {slug === 'builder-revolution' ? <BrMark stroke={brand.accent} dot={brand.accent2} /> : intro.emoji}
         </div>
 
         <p className="mb-1 text-sm font-semibold uppercase tracking-widest" style={{ color: brand.accent }}>
