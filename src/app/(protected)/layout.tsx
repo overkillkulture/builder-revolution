@@ -18,6 +18,14 @@ export default async function Layout({ children }: { children: React.ReactNode }
   const [user] = await getServerUser();
   if (user?.status === 'banned') redirect('/api/session/kick');
 
+  // S477 2-rung gate — passwordless quick-entry guests can watch, but must verify
+  // (Google/GitHub, one click) to enter the rooms. Same loop-free pattern as the
+  // ban check above: send them to the PUBLIC /lobby (an unprotected, non-auth
+  // page), NEVER /login — so the edge middleware can't bounce them back here.
+  // Flag-gated (GUEST_GATE_ENABLED, default OFF) so this ships dark and we flip it
+  // on only after verifying live — no unleashing an auth change on the community.
+  if (process.env.GUEST_GATE_ENABLED === 'true' && user?.tier === 'guest') redirect('/lobby');
+
   // This runs only once on the initial load of this layout
   // e.g. when the user signs in/up or on hard reload
   await useCheckIfRequiredFieldsArePopulated();
