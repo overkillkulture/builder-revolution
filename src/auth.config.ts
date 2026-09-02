@@ -29,7 +29,10 @@ export default {
       const isStaticAsset = pathname.startsWith('/_next/');
       // /removed is the terminal page for a banned user (S447) — must stay
       // reachable when logged-out, or the ban flow can't land anywhere.
-      const isPublicRoute = pathname.startsWith('/meet') || pathname === '/removed';
+      // /lobby is the S477 guest verify-to-enter page — must stay reachable while
+      // logged IN as a guest (that's who it's for) and NOT be an auth page, or the
+      // edge would bounce a logged-in guest to /main and reopen the S446 loop.
+      const isPublicRoute = pathname.startsWith('/meet') || pathname === '/removed' || pathname === '/lobby';
 
       if (isInviteOnly) {
         // INVITE-ONLY MODE — everything is locked except login page, /meet, and API/assets

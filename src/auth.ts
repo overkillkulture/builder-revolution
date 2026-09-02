@@ -20,8 +20,21 @@ declare module 'next-auth' {
     // without an extra query, and the protected layout can revoke banned users.
     // (JWT itself extends Record<string, unknown>, so token.role/status need no
     // augmentation — only a cast on read in the session callback below.)
-    user: { id: string; name?: string; role: string; status: string };
+    // S477: `tier` = the 2-rung trust ladder. 'guest' = passwordless quick-entry
+    // (synthetic @community.local email, no linked OAuth account) — can watch.
+    // 'verified' = OAuth / supabase-bridge / any real email — can enter the rooms.
+    user: { id: string; name?: string; role: string; status: string; tier: string };
   }
+}
+
+// S477 2-rung gate: a "guest" is a passwordless quick-entry principal — it lives
+// in the synthetic @community.local namespace AND has no linked OAuth Account.
+// Anyone with a real email (the 206 migrated users, OAuth logins, supabase-bridge)
+// is "verified". A guest who later links Google/GitHub gains an Account row and is
+// re-evaluated as verified on their next request. Missing user => treat as guest.
+function isGuestUser(u?: { email: string | null; accounts: { id: string }[] } | null): boolean {
+  if (!u) return true;
+  return (u.email || '').endsWith('@community.local') && u.accounts.length === 0;
 }
 
 // Privileged/system identities that may NEVER be entered via passwordless
@@ -200,10 +213,11 @@ export const {
       if (user?.id) {
         const u = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { role: true, status: true },
+          select: { role: true, status: true, email: true, accounts: { select: { id: true }, take: 1 } },
         });
         token.role = u?.role ?? 'user';
         token.status = u?.status ?? 'active';
+        token.tier = isGuestUser(u) ? 'guest' : 'verified';
         return token;
       }
       // Every subsequent request: cheap indexed PK read so a ban takes effect
@@ -214,11 +228,15 @@ export const {
         try {
           const u = await prisma.user.findUnique({
             where: { id: token.sub },
-            select: { role: true, status: true },
+            select: { role: true, status: true, email: true, accounts: { select: { id: true }, take: 1 } },
           });
           // Deleted user => treat as removed (revoke), not as active.
           token.status = u ? u.status : 'banned';
           token.role = u?.role ?? token.role ?? 'user';
+          // Refresh tier every request so a guest->verified upgrade (they linked
+          // OAuth) takes effect, and pre-S477 sessions get backfilled. Deleted
+          // user keeps prior tier (it no longer matters — status=banned wins).
+          token.tier = u ? (isGuestUser(u) ? 'guest' : 'verified') : (token.tier ?? 'guest');
         } catch {
           // DB blip: keep the prior token. Fail OPEN for availability — banning
           // is rare, a transient DB error must not log the whole community out.
@@ -233,6 +251,10 @@ export const {
           name: token.name ?? undefined,
           role: (token.role as string | undefined) ?? 'user',
           status: (token.status as string | undefined) ?? 'active',
+          // Default 'verified' (fail-open) so a token that predates tier-stamping
+          // never wrongly loses room access for a request; the jwt callback above
+          // runs first on every request and stamps the real value from the DB.
+          tier: (token.tier as string | undefined) ?? 'verified',
         },
         expires: rest.session.expires,
       };
