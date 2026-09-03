@@ -5,12 +5,15 @@ import { WorkOrdersRail } from '@/components/WorkOrdersRail';
 import { useSessionUserData } from '@/hooks/useSessionUserData';
 import { MessagesClient } from '../messages/MessagesClient';
 
-// The Slack model: one room where the team talks (center), work-order
-// buttons + guild abilities on the side. No page-hopping between chat and
-// the board. On phones the rail is a tab, not a hidden desktop-only sidebar.
+// The Slack model: one room where the team talks. On arrival it must READ AS A
+// CHAT, not a project board (WO-chat-default-view — Commander: "looks like five
+// Trello lanes smooshed together"). So the conversation is the ONLY thing shown
+// by default and takes the full width; the work-order rail is an OPT-IN tab on
+// every viewport (was a permanent desktop side column — the extra "lane"). No
+// page-hopping: one click flips to Work Orders and back.
 export function MainViewClient({ userId }: { userId: string }) {
   const [user] = useSessionUserData();
-  const [mobileTab, setMobileTab] = useState<'chat' | 'work'>('chat');
+  const [tab, setTab] = useState<'chat' | 'work'>('chat');
 
   const rail = (
     <WorkOrdersRail
@@ -21,41 +24,40 @@ export function MainViewClient({ userId }: { userId: string }) {
   );
 
   return (
-    <div className="px-4 pt-4">
-      <h1 className="mb-4 text-4xl font-bold">Build Guild</h1>
-
-      {/* Mobile tab switch — the rail is unreachable on phones without this */}
-      <div className="mb-3 flex gap-2 lg:hidden">
+    <div className="px-4 pt-3">
+      {/* Compact tab bar (all viewports). Chat is the default so the first
+          screen is a conversation, not a menu of lanes. Replaces the big
+          "Build Guild" title + permanent desktop rail that read as a board. */}
+      <div className="mb-3 flex items-center gap-2">
         <button
-          onClick={() => setMobileTab('chat')}
-          className={`flex-1 rounded-lg px-3 py-2 text-sm font-bold transition-colors ${
-            mobileTab === 'chat'
+          onClick={() => setTab('chat')}
+          className={`rounded-lg px-4 py-1.5 text-sm font-bold transition-colors ${
+            tab === 'chat'
               ? 'bg-emerald-500/20 text-emerald-400'
-              : 'bg-white/5 text-gray-400'
+              : 'bg-white/5 text-gray-400 hover:text-gray-200'
           }`}
         >
           Chat
         </button>
         <button
-          onClick={() => setMobileTab('work')}
-          className={`flex-1 rounded-lg px-3 py-2 text-sm font-bold transition-colors ${
-            mobileTab === 'work'
+          onClick={() => setTab('work')}
+          className={`rounded-lg px-4 py-1.5 text-sm font-bold transition-colors ${
+            tab === 'work'
               ? 'bg-emerald-500/20 text-emerald-400'
-              : 'bg-white/5 text-gray-400'
+              : 'bg-white/5 text-gray-400 hover:text-gray-200'
           }`}
         >
-          Work
+          Work Orders
         </button>
       </div>
 
-      <div className="flex gap-4">
-        <div className={`min-w-0 flex-1 ${mobileTab === 'chat' ? 'block' : 'hidden'} lg:block`}>
-          <MessagesClient userId={userId} embedded />
-        </div>
-        {/* Desktop: side-by-side. Mobile: shown only when the Work tab is active */}
-        <div className={`${mobileTab === 'work' ? 'block' : 'hidden'} w-full flex-shrink-0 lg:block lg:w-72`}>
-          {rail}
-        </div>
+      {/* Chat stays MOUNTED when the Work tab is open (just hidden) so its 3s
+          poll keeps running and returning is instant — only visibility toggles. */}
+      <div className={tab === 'chat' ? 'block' : 'hidden'}>
+        <MessagesClient userId={userId} embedded />
+      </div>
+      <div className={tab === 'work' ? 'mx-auto block max-w-2xl' : 'hidden'}>
+        {rail}
       </div>
     </div>
   );
