@@ -118,6 +118,25 @@ async function resolveTownSquareId(): Promise<number | null> {
 }
 
 /**
+ * Output-safety guard for ARAYA's endpoint reply BEFORE it is auto-posted to a
+ * public room. Two reasons this is not optional: (1) the reply comes from an LLM
+ * that is only *prompted* to behave, not guaranteed; (2) the newcomer's first
+ * message is interpolated into that prompt, so a hostile first post could try to
+ * steer the reply (prompt injection) — and whatever comes back is published as
+ * ARAYA to real strangers. A reply is accepted only if it self-identifies as the
+ * AI AND makes no money/outcome promise; otherwise we drop to the honest template.
+ */
+function isSafeWelcome(text: string): boolean {
+  const t = text.toLowerCase();
+  const selfLabels = /\baraya\b|\bai\b|house ai|assistant|\bbot\b/.test(t);
+  const promises =
+    /\bguarantee\b|\bpromise\b|get rich|passive income|double your|\bprofit\b|\breturns?\b|make (you )?\$|\$\s?\d|will (make|earn) you|risk-?free|financial freedom/.test(
+      t,
+    );
+  return selfLabels && !promises;
+}
+
+/**
  * Craft ARAYA's welcome line. Tries her live chat endpoint for a specific,
  * non-canned reply; falls back to a personalized template if the endpoint is
  * slow/down. Either way the text self-identifies as the house AI (honesty law),
@@ -152,8 +171,10 @@ async function composeWelcome(displayName: string, firstMessage: string): Promis
     const data = await response.json();
     const reply: string | undefined = data.response || data.message || data.reply;
     const cleaned = (reply || '').trim();
-    // Guard against an empty/garbage endpoint reply — the fallback is always honest.
-    return cleaned.length >= 20 ? cleaned : fallback;
+    // Guard against an empty/garbage/off-brand endpoint reply — the fallback is
+    // always honest. Must be substantive AND pass the output-safety guard (self-
+    // labels as AI, no money/outcome promise) before it can be posted publicly.
+    return cleaned.length >= 20 && isSafeWelcome(cleaned) ? cleaned : fallback;
   } catch {
     return fallback;
   }
