@@ -1,4 +1,4 @@
-import { MenuBar } from '@/components/MenuBar';
+import { CrDock } from '@/components/CrDock';
 import { MobileHeader } from '@/components/MobileHeader';
 import { ResponsiveContainer } from '@/components/ui/ResponsiveContainer';
 import { useCheckIfRequiredFieldsArePopulated } from '@/hooks/useCheckIfRequiredFieldsArePopulated';
@@ -31,11 +31,16 @@ export default async function Layout({ children }: { children: React.ReactNode }
   await useCheckIfRequiredFieldsArePopulated();
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    <div className="flex min-h-screen flex-col">
+      {/* Top context strip (home + rooms + ← My Cockpit) */}
       <MobileHeader />
-      <MenuBar />
 
-      <ResponsiveContainer className="pb-20 md:pb-4">{children}</ResponsiveContainer>
+      {/* pb clears the fixed CrDock (~64px + safe-area) on every breakpoint */}
+      <ResponsiveContainer className="pb-24">{children}</ResponsiveContainer>
+
+      {/* THE ONE HUD — 5-door bottom dock. Retires Munia's MenuBar (mobile bottom
+          bar + desktop sidebar); HUD_MERGE law = exactly one bar, never a second. */}
+      <CrDock />
       {/* Single bug reporter is the global public/bug-button.js (routes to GitHub consciousness-bugs +
           inbox + #bugs). BugReporter.tsx removed S436 — it was a 2nd floating button writing only /api/bugs. */}
     </div>
