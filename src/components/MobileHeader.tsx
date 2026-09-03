@@ -31,6 +31,13 @@ export function MobileHeader() {
             {room.label}
           </Link>
         ))}
+        {/* Roundtrip home — one visible click back to the cockpit (mirrors the desktop MenuBar link) */}
+        <a
+          href="https://100xbuilder.io/my/pulse.html"
+          className="rounded-lg bg-primary-accent/20 px-2.5 py-1.5 text-xs font-bold text-muted-foreground transition-colors hover:bg-primary-accent/30 hover:text-foreground"
+        >
+          ← Cockpit
+        </a>
         {/* Legacy Case-Builder HQ toolkit — only on the HQ instance, not the shared Main Chat */}
         {isHQ && (
           <a
