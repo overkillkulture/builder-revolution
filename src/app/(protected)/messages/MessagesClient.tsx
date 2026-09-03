@@ -70,6 +70,9 @@ interface ChannelData {
   type: string;
   memberCount: number;
   messageCount: number;
+  // S482: the API pins exactly one channel as the town square (busiest human
+  // channel) and always returns it, so arrival can reliably land there.
+  isTownSquare?: boolean;
   lastMessage: {
     content: string;
     senderName: string;
@@ -200,13 +203,18 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
         return;
       }
     }
-    // Prefer landing in the shared "General" town-square channel so everyone
-    // arrives in the same team room (MC-26); otherwise fall back to the most
-    // recently active conversation.
-    const general = channels.find((ch) => /^#?\s*general$/i.test(ch.name));
-    if (general) {
+    // Prefer landing in the pinned town-square channel so everyone arrives in the
+    // same team room (MC-26). S482: trust the API's `isTownSquare` flag (busiest
+    // channel, always returned even when quiet) instead of matching the name
+    // "general" — the seeded room was "Builders Lounge", so the name match never
+    // fired and a quiet room dropped users onto the empty lane-menu. Name match
+    // kept as a legacy fallback.
+    const townSquare =
+      channels.find((ch) => ch.isTownSquare) ||
+      channels.find((ch) => /^#?\s*general$/i.test(ch.name));
+    if (townSquare) {
       autoSelectedRef.current = true;
-      setActiveConv(general.id);
+      setActiveConv(townSquare.id);
       setActiveType('channel');
       return;
     }
@@ -547,10 +555,13 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
                   <button
                     type="button"
                     onClick={() => {
-                      // Land in the shared town square (# general) if present,
+                      // Land in the pinned town square (S482 isTownSquare flag),
                       // else the first available channel. Was a link to the
                       // /community feed, which is retired (redirects here).
-                      const general = channels.find((ch) => /^#?\s*general$/i.test(ch.name)) || channels[0];
+                      const general =
+                        channels.find((ch) => ch.isTownSquare) ||
+                        channels.find((ch) => /^#?\s*general$/i.test(ch.name)) ||
+                        channels[0];
                       if (general) { setActiveConv(general.id); setActiveType('channel'); }
                     }}
                     disabled={channels.length === 0}
