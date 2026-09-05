@@ -1,6 +1,9 @@
 import { getServerUser } from '@/lib/getServerUser';
 import prisma from '@/lib/prisma/prisma';
-import { maybeRespondAsArayaInChat } from '@/lib/araya/chatResponder';
+import {
+  maybeRespondAsArayaInChat,
+  maybeWelcomeFirstTimePoster,
+} from '@/lib/araya/chatResponder';
 import { NextResponse } from 'next/server';
 
 // Return the user's membership for a conversation, lazily creating it for public
@@ -133,6 +136,15 @@ export async function POST(
     content: content.trim(),
     conversationId,
     senderId: user.id,
+  }).catch(() => {});
+
+  // If this is the sender's FIRST post in the town-square channel, ARAYA welcomes
+  // them once (fire-and-forget; rate-limited to exactly one welcome per user).
+  maybeWelcomeFirstTimePoster({
+    conversationId,
+    senderId: user.id,
+    messageId: message.id,
+    content: content.trim(),
   }).catch(() => {});
 
   return NextResponse.json(message);
