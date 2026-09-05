@@ -86,6 +86,12 @@ interface MemberData {
   active: boolean;
 }
 
+// S486 (Commander): the member count + roster are hidden while the community is
+// small — "10 members" and a visible name list broadcast how empty the room is
+// and put all the cards on the table. Flip to true when the room is busy enough
+// that showing who's here helps instead of hurts. One switch, both places.
+const SHOW_MEMBER_ROSTER = false;
+
 export function MessagesClient({ userId, embedded = false }: { userId: string; embedded?: boolean }) {
   const [conversations, setConversations] = useState<ConversationData[]>([]);
   const [rooms, setRooms] = useState<RoomData[]>([]);
@@ -507,7 +513,7 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
                   <span style={{ color: '#dceae6', fontWeight: 600 }}>
                     {activeType !== 'dm' ? `# ${activeConvData.name}` : activeConvData.name}
                   </span>
-                  {'memberCount' in activeConvData && (
+                  {SHOW_MEMBER_ROSTER && 'memberCount' in activeConvData && (
                     <span style={{ color: '#6a8a7a', fontSize: '0.75rem', display: 'block' }}>
                       {activeConvData.memberCount} member{activeConvData.memberCount !== 1 ? 's' : ''}
                     </span>
@@ -646,7 +652,7 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
               layout (WO-view-03 Phase 2). Shows the active room's roster with an
               honest "active" dot (membership.lastReadAt within 5 min, not fake
               presence). chatscope hides right sidebars on phones automatically. */}
-          {activeConvData && members.length > 0 && (
+          {SHOW_MEMBER_ROSTER && activeConvData && members.length > 0 && (
             <Sidebar position="right" style={{ background: '#0e161c', borderLeft: '1px solid rgba(0,230,150,0.1)', minWidth: '210px' }}>
               <div style={{ padding: '14px 16px 6px', fontSize: '0.65rem', color: '#39d98a', letterSpacing: '1.5px', fontWeight: 700, textTransform: 'uppercase' as const }}>
                 Members — {members.length}
