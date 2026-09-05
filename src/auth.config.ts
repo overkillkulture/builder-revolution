@@ -14,7 +14,14 @@ export default {
   // both Google and GitHub verify email ownership before issuing the identity,
   // so we link the incoming verified login to the existing same-email user.
   providers: [
-    GitHub({ allowDangerousEmailAccountLinking: true }),
+    // issuer: 'https://github.com' — GitHub now returns an `iss` (issuer) param on
+    // the OAuth callback (RFC 9207). Our @auth/core@0.18 leaves a non-OIDC provider's
+    // as.issuer at the sentinel "https://authjs.dev", so oauth4webapi's check
+    // `iss !== as.issuer` throws `unexpected "iss" (issuer) response parameter value`
+    // and EVERY GitHub sign-in dies at /api/auth/error (verified in Railway logs,
+    // S486). Declaring the real issuer makes iss === as.issuer and the callback passes.
+    // GitHub keeps its own token/userinfo URLs, so this does NOT trigger OIDC discovery.
+    GitHub({ allowDangerousEmailAccountLinking: true, issuer: 'https://github.com' }),
     Google({ allowDangerousEmailAccountLinking: true }),
   ],
   pages: {
