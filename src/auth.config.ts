@@ -19,6 +19,10 @@ export default {
   ],
   pages: {
     signIn: '/login',
+    // Auth failures return to the door with ?error=... instead of stranding
+    // the user on the bare /api/auth/error page (a dead end with no way back —
+    // where every "google/github is broke" report ended up).
+    error: '/login',
   },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
