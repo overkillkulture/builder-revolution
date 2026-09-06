@@ -27,64 +27,68 @@
 /* chatscope dark paint. The kit ships white defaults, so every element we
    don't inline-style (placeholder tiles like "No conversations yet", hover
    states, the composer bar, message bubbles) flashes white inside our dark
-   chat — the "Fisher-Price" seams. Paint the whole kit to the ARAYA palette
-   once, here, instead of chasing inline styles per component. */
-.cs-conversation,
-.cs-conversation--active {
-  background-color: transparent;
+   chat — the "Fisher-Price" seams. The kit's stylesheet is imported at the
+   component level, which loads AFTER this file, so plain overrides lose the
+   cascade: prefix with .cs-main-container (specificity) AND !important
+   (deliberate theme layer — the kit is never right in our dark UI). */
+.cs-main-container .cs-conversation,
+.cs-main-container .cs-conversation--active {
+  background-color: transparent !important;
 }
-.cs-conversation:hover {
-  background-color: rgba(255, 255, 255, 0.04);
+.cs-main-container .cs-conversation:hover {
+  background-color: rgba(255, 255, 255, 0.04) !important;
 }
-.cs-conversation__name {
-  color: #dceae6;
+.cs-main-container .cs-conversation__name {
+  color: #dceae6 !important;
 }
-.cs-conversation__info,
-.cs-conversation__last-activity-time {
-  color: #6a8a7a;
+.cs-main-container .cs-conversation__info,
+.cs-main-container .cs-conversation__last-activity-time,
+.cs-main-container .cs-conversation__info-content {
+  color: #6a8a7a !important;
 }
-.cs-conversation-list,
-.cs-sidebar.cs-sidebar--left,
-.cs-sidebar.cs-sidebar--right {
-  background-color: #0e161c;
+.cs-main-container .cs-conversation-list,
+.cs-main-container .cs-sidebar.cs-sidebar--left,
+.cs-main-container .cs-sidebar.cs-sidebar--right {
+  background-color: #0e161c !important;
 }
-.cs-message--incoming .cs-message__content {
-  background-color: #1a1c24;
-  color: #eef1f6;
+.cs-main-container .cs-message--incoming .cs-message__content {
+  background-color: #1a1c24 !important;
+  color: #eef1f6 !important;
 }
-.cs-message--outgoing .cs-message__content {
-  background-color: rgba(14, 125, 144, 0.45);
-  color: #eef1f6;
+.cs-main-container .cs-message--outgoing .cs-message__content {
+  background-color: rgba(14, 125, 144, 0.45) !important;
+  color: #eef1f6 !important;
 }
-.cs-message__sender-name {
-  color: #9aa3b2;
+.cs-main-container .cs-message__sender-name {
+  color: #9aa3b2 !important;
 }
-.cs-message__sent-time {
-  color: #6a8a7a;
+.cs-main-container .cs-message__sent-time {
+  color: #6a8a7a !important;
 }
-.cs-message-input {
-  background-color: transparent;
+.cs-main-container .cs-message-input {
+  background-color: transparent !important;
 }
-.cs-message-input__content-editor-wrapper,
-.cs-message-input__content-editor {
-  background-color: #12141a;
-  color: #eef1f6;
+.cs-main-container .cs-message-input__content-editor-wrapper,
+.cs-main-container .cs-message-input__content-editor,
+.cs-main-container .cs-message-input__content-editor-container {
+  background-color: #12141a !important;
+  color: #eef1f6 !important;
 }
-.cs-message-input__content-editor-wrapper {
-  border: 1px solid rgba(20, 160, 184, 0.25);
+.cs-main-container .cs-message-input__content-editor-wrapper {
+  border: 1px solid rgba(20, 160, 184, 0.25) !important;
 }
-.cs-message-input__content-editor[data-placeholder]:empty::before {
-  color: #9aa3b2;
+.cs-main-container .cs-message-input__content-editor[data-placeholder]:empty::before {
+  color: #9aa3b2 !important;
 }
-.cs-button--send,
-.cs-button--attachment {
-  color: #14a0b8;
+.cs-main-container .cs-button--send,
+.cs-main-container .cs-button--attachment {
+  color: #14a0b8 !important;
 }
-.cs-typing-indicator {
-  background-color: transparent;
+.cs-main-container .cs-typing-indicator {
+  background-color: transparent !important;
 }
-.cs-typing-indicator__text {
-  color: #9aa3b2;
+.cs-main-container .cs-typing-indicator__text {
+  color: #9aa3b2 !important;
 }
 
 @layer base {
