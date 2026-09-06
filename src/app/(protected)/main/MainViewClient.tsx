@@ -1,62 +1,123 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Feather, LogOutCircle, NotificationBell, Profile } from '@/svg_components';
 import { WorkOrdersRail } from '@/components/WorkOrdersRail';
 import { useSessionUserData } from '@/hooks/useSessionUserData';
+import { ROOMS, resolveRoom } from '@/lib/rooms';
 import { MessagesClient } from '../messages/MessagesClient';
 
-// The Slack model: one room where the team talks (center), work-order
-// buttons + guild abilities on the side. No page-hopping between chat and
-// the board. On phones the rail is a tab, not a hidden desktop-only sidebar.
-export function MainViewClient({ userId }: { userId: string }) {
+// The Discord shape (WO-main-chat-discord-simplify, Commander S467): thin
+// server rail · channel column · chat fills EVERY remaining pixel. The
+// work-orders board is no longer a permanent column — it's behind a toggle,
+// Build Guild only, so a newcomer's first screen is just a chat room they
+// already know how to use. Reference: Commander's own Discord server
+// (~72px rail + ~240px channels + full-width chat, no extra rails).
+export function MainViewClient({ userId, initialRoom }: { userId: string; initialRoom?: string }) {
   const [user] = useSessionUserData();
-  const [mobileTab, setMobileTab] = useState<'chat' | 'work'>('chat');
+  const router = useRouter();
+  const [room, setRoom] = useState(() => resolveRoom(initialRoom));
+  const [showBoard, setShowBoard] = useState(false);
 
-  const rail = (
-    <WorkOrdersRail
-      username={user?.username}
-      name={user?.name}
-      email={user?.email}
-    />
-  );
+  const switchRoom = (slug: string) => {
+    const next = resolveRoom(slug);
+    setRoom(next);
+    // Keep the URL shareable/back-button-friendly without a server round-trip.
+    router.replace(`/main?room=${next.slug}`, { scroll: false });
+  };
 
   return (
-    <div className="px-4 pt-4">
-      <h1 className="mb-4 text-4xl font-bold">Build Guild</h1>
+    <div className="flex h-[calc(100dvh-116px)] md:h-screen">
+      {/* SERVER RAIL — desktop only; phones switch rooms via the MobileHeader pills */}
+      <div className="hidden w-[68px] flex-shrink-0 flex-col items-center gap-2 border-r border-border/20 bg-black/20 py-3 md:flex">
+        <Link href="/feed" title="Feed & profiles" className="mb-1">
+          <Feather className="h-8 w-8 stroke-primary" />
+        </Link>
+        <div className="mb-1 h-px w-8 bg-border/40" />
+        {ROOMS.map((r) => {
+          const active = r.slug === room.slug;
+          return (
+            <button
+              key={r.slug}
+              type="button"
+              title={r.label}
+              onClick={() => switchRoom(r.slug)}
+              className={`flex h-11 w-11 items-center justify-center text-sm font-bold transition-all ${
+                active ? 'rounded-xl' : 'rounded-full opacity-60 hover:rounded-xl hover:opacity-100'
+              }`}
+              style={{
+                background: active ? r.accent : r.accentSoft,
+                color: active ? '#03110a' : r.accent,
+                boxShadow: active ? `0 0 0 2px ${r.accentSoft}` : undefined,
+              }}
+            >
+              {r.short}
+            </button>
+          );
+        })}
 
-      {/* Mobile tab switch — the rail is unreachable on phones without this */}
-      <div className="mb-3 flex gap-2 lg:hidden">
-        <button
-          onClick={() => setMobileTab('chat')}
-          className={`flex-1 rounded-lg px-3 py-2 text-sm font-bold transition-colors ${
-            mobileTab === 'chat'
-              ? 'bg-emerald-500/20 text-emerald-400'
-              : 'bg-white/5 text-gray-400'
-          }`}
-        >
-          Chat
-        </button>
-        <button
-          onClick={() => setMobileTab('work')}
-          className={`flex-1 rounded-lg px-3 py-2 text-sm font-bold transition-colors ${
-            mobileTab === 'work'
-              ? 'bg-emerald-500/20 text-emerald-400'
-              : 'bg-white/5 text-gray-400'
-          }`}
-        >
-          Work
-        </button>
+        <div className="mt-auto flex flex-col items-center gap-1">
+          {room.slug === 'build-guild' && (
+            <button
+              type="button"
+              title={showBoard ? 'Hide the guild board' : 'Show the guild board (work orders)'}
+              onClick={() => setShowBoard((v) => !v)}
+              className={`mb-1 flex h-9 w-9 items-center justify-center rounded-lg text-[0.6rem] font-bold tracking-wide transition-colors ${
+                showBoard
+                  ? 'bg-emerald-500/25 text-emerald-300'
+                  : 'bg-white/5 text-muted-foreground hover:bg-emerald-500/15 hover:text-emerald-400'
+              }`}
+            >
+              WO
+            </button>
+          )}
+          <Link
+            href="/notifications"
+            title="Notifications"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+          >
+            <NotificationBell className="h-5 w-5 stroke-current" />
+          </Link>
+          <Link
+            href={`/${user?.username || ''}`}
+            title="My profile"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+          >
+            <Profile className="h-5 w-5 stroke-current" />
+          </Link>
+          <Link
+            href="/api/auth/signout"
+            title="Log out"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+          >
+            <LogOutCircle className="h-5 w-5 stroke-current" />
+          </Link>
+        </div>
       </div>
 
-      <div className="flex gap-4">
-        <div className={`min-w-0 flex-1 ${mobileTab === 'chat' ? 'block' : 'hidden'} lg:block`}>
-          <MessagesClient userId={userId} embedded />
-        </div>
-        {/* Desktop: side-by-side. Mobile: shown only when the Work tab is active */}
-        <div className={`${mobileTab === 'work' ? 'block' : 'hidden'} w-full flex-shrink-0 lg:block lg:w-72`}>
-          {rail}
-        </div>
+      {/* THE CHAT — channel column + messages, full remaining width.
+          key={room.slug} remounts per room: clean fetch + auto-select of THAT
+          room's General, no stale selection bleeding across servers. */}
+      <div className="min-w-0 flex-1">
+        <MessagesClient
+          key={room.slug}
+          userId={userId}
+          embedded
+          fillHeight
+          communitySlug={room.slug}
+          communityName={room.label}
+          accent={room.accent}
+        />
       </div>
+
+      {/* GUILD BOARD — the old always-on right rail, now opt-in (desktop, Build Guild only) */}
+      {showBoard && room.slug === 'build-guild' && (
+        <div className="hidden w-72 flex-shrink-0 overflow-y-auto border-l border-border/20 p-2 lg:block">
+          <WorkOrdersRail username={user?.username} name={user?.name} email={user?.email} />
+        </div>
+      )}
     </div>
   );
 }

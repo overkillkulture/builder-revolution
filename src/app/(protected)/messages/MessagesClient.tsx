@@ -1,7 +1,7 @@
 'use client';
 import { apiUrl } from '@/lib/apiUrl';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
 import {
   MainContainer,
@@ -68,6 +68,7 @@ interface ChannelData {
   name: string;
   description: string | null;
   type: string;
+  communitySlug?: string;
   memberCount: number;
   messageCount: number;
   lastMessage: {
@@ -92,7 +93,26 @@ interface MemberData {
 // that showing who's here helps instead of hurts. One switch, both places.
 const SHOW_MEMBER_ROSTER = false;
 
-export function MessagesClient({ userId, embedded = false }: { userId: string; embedded?: boolean }) {
+export function MessagesClient({
+  userId,
+  embedded = false,
+  fillHeight = false,
+  communitySlug,
+  communityName,
+  accent = '#39d98a',
+}: {
+  userId: string;
+  embedded?: boolean;
+  // /main mounts this full-bleed (Discord shape) — no fixed calc() height, no
+  // rounded card frame; the chat takes every pixel its parent gives it.
+  fillHeight?: boolean;
+  // When set, the channel column shows ONLY this room's channels — each room is
+  // its own "server" (WO-main-chat-discord-simplify). /messages passes nothing
+  // and keeps the flat everything list.
+  communitySlug?: string;
+  communityName?: string;
+  accent?: string;
+}) {
   const [conversations, setConversations] = useState<ConversationData[]>([]);
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const [channels, setChannels] = useState<ChannelData[]>([]);
@@ -186,6 +206,13 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
     loadConversations();
   }, [loadConversations]);
 
+  // Room scoping: /main renders one room ("server") at a time. Channels that
+  // predate the split come back with communitySlug build-guild from the API.
+  const visibleChannels = useMemo(
+    () => (communitySlug ? channels.filter((ch) => ch.communitySlug === communitySlug) : channels),
+    [channels, communitySlug],
+  );
+
   // Auto-select the most recently active conversation on first load so the user
   // lands in a live chat with a visible composer — not the empty "Select a
   // conversation" void (MC-09/MC-10). Prefer whatever has the newest message;
@@ -206,10 +233,10 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
         return;
       }
     }
-    // Prefer landing in the shared "General" town-square channel so everyone
+    // Prefer landing in THIS room's "General" town-square channel so everyone
     // arrives in the same team room (MC-26); otherwise fall back to the most
-    // recently active conversation.
-    const general = channels.find((ch) => /^#?\s*general$/i.test(ch.name));
+    // recently active conversation in the room.
+    const general = visibleChannels.find((ch) => /^#?\s*general$/i.test(ch.name));
     if (general) {
       autoSelectedRef.current = true;
       setActiveConv(general.id);
@@ -217,7 +244,7 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
       return;
     }
     const candidates = [
-      ...channels.map((ch) => ({ id: ch.id, type: 'channel' as const, at: ch.lastMessage?.createdAt })),
+      ...visibleChannels.map((ch) => ({ id: ch.id, type: 'channel' as const, at: ch.lastMessage?.createdAt })),
       ...rooms.map((r) => ({ id: r.id, type: 'room' as const, at: r.lastMessage?.createdAt })),
       ...conversations.map((c) => ({ id: c.id, type: 'dm' as const, at: c.lastMessage?.createdAt })),
     ];
@@ -229,7 +256,7 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
     autoSelectedRef.current = true;
     setActiveConv(pick.id);
     setActiveType(pick.type);
-  }, [loading, activeConv, rooms, conversations, channels]);
+  }, [loading, activeConv, rooms, conversations, channels, visibleChannels]);
 
   // Poll for new messages when a conversation is active
   useEffect(() => {
@@ -317,7 +344,7 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
   };
 
   return (
-    <div className={embedded ? '' : 'px-4 pt-4'}>
+    <div className={embedded ? 'h-full' : 'px-4 pt-4'}>
       {!embedded && <h1 className="mb-4 text-4xl font-bold">Messages</h1>}
       <div
         // On phones (chatscope responsive) the sidebar is CSS-hidden while a
@@ -325,26 +352,46 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
         // the FULL-WIDTH channel list when nothing is selected (Back arrow sets
         // activeConv=null), so mobile users can still switch channels.
         className={activeConv ? 'cs-view-chat' : 'cs-view-list'}
-        style={{
-          height: 'calc(100vh - 160px)',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          border: '1px solid rgba(0, 230, 150, 0.15)',
-        }}
+        style={
+          fillHeight
+            ? { height: '100%', overflow: 'hidden' }
+            : {
+                height: 'calc(100vh - 160px)',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                border: '1px solid rgba(0, 230, 150, 0.15)',
+              }
+        }
       >
         {/* responsive: on phones the channel sidebar collapses so the message
             pane gets full width (was squished to ~1 word per line). The Back
             button below returns to the channel list. Desktop (>768px) unchanged. */}
         <MainContainer responsive>
           <Sidebar position="left" style={{ background: '#0e161c', borderRight: '1px solid rgba(0,230,150,0.1)' }}>
+            {/* SERVER NAME — Discord's server-name bar; also the header that
+                tells you WHICH room you're in (was: page always said Build Guild) */}
+            {communityName && (
+              <div
+                style={{
+                  padding: '14px 16px',
+                  fontSize: '0.95rem',
+                  fontWeight: 800,
+                  color: '#e6f4ee',
+                  borderBottom: `1px solid ${accent}33`,
+                  background: `${accent}0d`,
+                }}
+              >
+                {communityName}
+              </div>
+            )}
             <ConversationList style={{ background: '#0e161c' }}>
               {/* CHANNELS SECTION — the public town square (everyone can read/post) */}
-              {channels.length > 0 && (
+              {visibleChannels.length > 0 && (
                 <>
-                  <div style={{ padding: '10px 16px 4px', fontSize: '0.65rem', color: '#39d98a', letterSpacing: '1.5px', fontWeight: 700, textTransform: 'uppercase' as const }}>
+                  <div style={{ padding: '10px 16px 4px', fontSize: '0.65rem', color: accent, letterSpacing: '1.5px', fontWeight: 700, textTransform: 'uppercase' as const }}>
                     Channels
                   </div>
-                  {channels.map((channel) => (
+                  {visibleChannels.map((channel) => (
                     <Conversation
                       key={`channel-${channel.id}`}
                       name={`# ${channel.name}`}
@@ -355,14 +402,14 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
                       active={channel.id === activeConv && activeType === 'channel'}
                       onClick={() => { setActiveConv(channel.id); setActiveType('channel'); }}
                       style={{
-                        background: channel.id === activeConv && activeType === 'channel' ? 'rgba(57,217,138,0.14)' : 'transparent',
+                        background: channel.id === activeConv && activeType === 'channel' ? `${accent}24` : 'transparent',
                         borderBottom: '1px solid rgba(255,255,255,0.05)',
-                        borderLeft: '3px solid rgba(57,217,138,0.4)',
+                        borderLeft: `3px solid ${accent}66`,
                       }}
                     >
                       <Avatar
                         name={channel.name}
-                        style={{ background: 'rgba(57,217,138,0.2)', color: '#39d98a' }}
+                        style={{ background: `${accent}33`, color: accent }}
                       />
                     </Conversation>
                   ))}
@@ -556,15 +603,15 @@ export function MessagesClient({ userId, embedded = false }: { userId: string; e
                       // Land in the shared town square (# general) if present,
                       // else the first available channel. Was a link to the
                       // /community feed, which is retired (redirects here).
-                      const general = channels.find((ch) => /^#?\s*general$/i.test(ch.name)) || channels[0];
+                      const general = visibleChannels.find((ch) => /^#?\s*general$/i.test(ch.name)) || visibleChannels[0];
                       if (general) { setActiveConv(general.id); setActiveType('channel'); }
                     }}
-                    disabled={channels.length === 0}
+                    disabled={visibleChannels.length === 0}
                     style={{
                       background: '#2ecc71', color: '#03110a', fontWeight: 700,
                       padding: '10px 20px', borderRadius: '10px', fontSize: '0.9rem',
-                      border: 'none', cursor: channels.length === 0 ? 'default' : 'pointer',
-                      opacity: channels.length === 0 ? 0.5 : 1,
+                      border: 'none', cursor: visibleChannels.length === 0 ? 'default' : 'pointer',
+                      opacity: visibleChannels.length === 0 ? 0.5 : 1,
                     }}
                   >
                     Enter the town square →

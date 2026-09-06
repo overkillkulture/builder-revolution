@@ -21,13 +21,21 @@ const SYSTEM_CHANNELS = new Set(['alerts']);
 const MIN_MESSAGES = 3;
 const ACTIVE_DAYS = 14;
 
+// A room's home channel always shows even with 0 messages — a freshly-seeded
+// room (Case Builder / Builder Revolution) must render a door, not a void.
+const ALWAYS_SHOW = new Set(['general', 'lobby']);
+
+// Channels predate the room split; anything never assigned lives in Build Guild.
+const LEGACY_HOME_SLUG = 'build-guild';
+
 export async function GET() {
   const [user] = await getServerUser();
   if (!user) return NextResponse.json([], { status: 401 });
 
   const channels = await prisma.conversation.findMany({
-    where: { type: 'CHANNEL', messages: { some: {} } },
+    where: { type: 'CHANNEL' },
     include: {
+      community: { select: { slug: true } },
       messages: {
         orderBy: { createdAt: 'desc' },
         take: 1,
@@ -43,6 +51,7 @@ export async function GET() {
   const result = channels
     .filter((ch) => !SYSTEM_CHANNELS.has((ch.name || '').toLowerCase()))
     .filter((ch) => {
+      if (ALWAYS_SHOW.has((ch.name || '').toLowerCase())) return true;
       const last = ch.messages[0];
       const recent = last ? new Date(last.createdAt).getTime() >= activeCutoff : false;
       return ch._count.messages >= MIN_MESSAGES || recent;
@@ -54,6 +63,7 @@ export async function GET() {
       name: ch.name || 'channel',
       description: ch.description,
       type: ch.type,
+      communitySlug: ch.community?.slug || LEGACY_HOME_SLUG,
       memberCount: ch._count.members,
       messageCount: ch._count.messages,
       lastMessage: last

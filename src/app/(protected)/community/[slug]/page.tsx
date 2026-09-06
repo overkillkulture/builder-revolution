@@ -27,7 +27,9 @@ export default async function Page({ params }: { params: { slug: string } }) {
   // shared URL used to open. The real conversation (all 425 migrated messages)
   // lives in /main. Signed-in members go straight to the real chat; the scattered
   // feed surface is retired per the S436 "it all goes to one place" order.
-  if (user) redirect('/main');
+  // S487: carry the room — the slug used to be discarded here, so clicking
+  // "Builder Revolution" dumped you in Build Guild (WO-main-chat-discord-simplify).
+  if (user) redirect(`/main?room=${params.slug}`);
 
   // Signed OUT (a shared "watch" link): render a clean, on-brand door instead of
   // the old giant nag bar stacked over test messages.

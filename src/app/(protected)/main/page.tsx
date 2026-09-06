@@ -6,9 +6,13 @@ export const metadata = {
   title: 'Builder Revolution Chat | Main',
 };
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: { room?: string };
+}) {
   const [user] = await getServerUser();
   if (!user) redirect('/login?from=/main');
 
-  return <MainViewClient userId={user.id} />;
+  return <MainViewClient userId={user.id} initialRoom={searchParams.room} />;
 }
