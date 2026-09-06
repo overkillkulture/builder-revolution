@@ -25,32 +25,34 @@
 }
 
 @layer base {
-  /* Consciousness Revolution Theme — Dark by default */
+  /* Builder Revolution — ARAYA palette (graphite / teal / van-green).
+     Matches components/araya-brand.css on the main platform so the seam
+     between site and chat is one brand. Dark by default. */
   :root {
-    --background: 8 12 16;
-    --foreground: 220 235 230;
-    --card: 14 22 28;
-    --card-foreground: 200 225 215;
-    --popover: 12 18 24;
-    --popover-foreground: 220 235 230;
-    --primary: 0 230 150;
-    --primary-foreground: 8 12 16;
-    --primary-accent: 0 255 170;
-    --secondary: 22 32 38;
-    --secondary-foreground: 160 185 175;
-    --secondary-accent: 30 42 50;
-    --muted: 45 60 70;
-    --muted-foreground: 140 165 155;
-    --accent: 156 39 176;
-    --accent-foreground: 240 220 255;
-    --success: 0 200 100;
-    --success-foreground: 200 255 220;
+    --background: 13 15 19;          /* araya-graphite */
+    --foreground: 238 241 246;       /* araya-text */
+    --card: 18 20 26;                /* araya-surface */
+    --card-foreground: 238 241 246;
+    --popover: 18 20 26;
+    --popover-foreground: 238 241 246;
+    --primary: 14 125 144;           /* araya-teal — the hero */
+    --primary-foreground: 238 241 246;
+    --primary-accent: 20 160 184;    /* araya-teal-hi */
+    --secondary: 26 28 36;           /* araya-surface-hi */
+    --secondary-foreground: 154 163 178; /* araya-dim */
+    --secondary-accent: 26 28 36;
+    --muted: 45 55 66;
+    --muted-foreground: 154 163 178; /* araya-dim */
+    --accent: 122 192 67;            /* araya-green (was Material purple) */
+    --accent-foreground: 13 15 19;
+    --success: 122 192 67;           /* araya-green */
+    --success-foreground: 13 15 19;
     --warning: 241 196 15;
     --warning-foreground: 255 250 220;
-    --destructive: 231 76 60;
+    --destructive: 231 76 60;        /* araya-danger */
     --destructive-foreground: 255 235 235;
-    --border: 30 50 45;
-    --input: 20 35 32;
+    --border: 34 40 50;
+    --input: 18 20 26;
     --ring: 1rem;
   }
 
@@ -62,17 +64,17 @@
     --card-foreground: 20 40 30;
     --popover: 248 252 250;
     --popover-foreground: 12 20 16;
-    --primary: 0 180 120;
+    --primary: 14 125 144;
     --primary-foreground: 255 255 255;
-    --primary-accent: 0 200 140;
+    --primary-accent: 20 160 184;
     --secondary: 230 238 234;
     --secondary-foreground: 60 80 70;
     --secondary-accent: 218 228 222;
     --muted: 190 205 198;
     --muted-foreground: 80 100 90;
-    --accent: 0 160 110;
-    --accent-foreground: 255 255 255;
-    --success: 0 180 90;
+    --accent: 122 192 67;
+    --accent-foreground: 13 15 19;
+    --success: 106 176 60;
     --success-foreground: 20 60 35;
     --warning: 241 196 15;
     --warning-foreground: 60 50 0;
@@ -82,32 +84,32 @@
     --input: 230 240 236;
   }
 
-  /* Dark mode — same as root (dark-first design) */
+  /* Dark mode — same as root (dark-first design) — ARAYA palette */
   .dark {
-    --background: 8 12 16;
-    --foreground: 220 235 230;
-    --card: 14 22 28;
-    --card-foreground: 200 225 215;
-    --popover: 12 18 24;
-    --popover-foreground: 220 235 230;
-    --primary: 0 230 150;
-    --primary-foreground: 8 12 16;
-    --primary-accent: 0 255 170;
-    --secondary: 22 32 38;
-    --secondary-foreground: 160 185 175;
-    --secondary-accent: 30 42 50;
-    --muted: 45 60 70;
-    --muted-foreground: 140 165 155;
-    --accent: 156 39 176;
-    --accent-foreground: 240 220 255;
-    --success: 0 200 100;
-    --success-foreground: 200 255 220;
+    --background: 13 15 19;
+    --foreground: 238 241 246;
+    --card: 18 20 26;
+    --card-foreground: 238 241 246;
+    --popover: 18 20 26;
+    --popover-foreground: 238 241 246;
+    --primary: 14 125 144;
+    --primary-foreground: 238 241 246;
+    --primary-accent: 20 160 184;
+    --secondary: 26 28 36;
+    --secondary-foreground: 154 163 178;
+    --secondary-accent: 26 28 36;
+    --muted: 45 55 66;
+    --muted-foreground: 154 163 178;
+    --accent: 122 192 67;
+    --accent-foreground: 13 15 19;
+    --success: 122 192 67;
+    --success-foreground: 13 15 19;
     --warning: 241 196 15;
     --warning-foreground: 255 250 220;
     --destructive: 231 76 60;
     --destructive-foreground: 255 235 235;
-    --border: 30 50 45;
-    --input: 20 35 32;
+    --border: 34 40 50;
+    --input: 18 20 26;
   }
 
   /* Scrollbar */
