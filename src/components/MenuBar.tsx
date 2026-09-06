@@ -171,13 +171,11 @@ export function MenuBar() {
         </div>
 
         <a
-          href="https://100xbuilder.io"
-          target="_blank"
-          rel="noopener noreferrer"
+          href="https://100xbuilder.io/my/pulse.html"
           className="mt-auto flex flex-col rounded-lg px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-primary-accent/30 hover:text-foreground"
         >
-          <span className="text-[0.5rem] tracking-[0.15em] text-muted-foreground/30">100X BUILDER</span>
-          <span>← Main Site</span>
+          <span className="text-[0.5rem] tracking-[0.15em] text-muted-foreground/30">COCKPIT</span>
+          <span>← My Cockpit</span>
         </a>
       </div>
 
