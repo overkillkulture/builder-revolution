@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
+import { cookies, headers } from 'next/headers';
 
 import { auth } from '@/auth';
+import { isWebviewUA, logFunnel } from '@/lib/funnel';
 
 import { UserAuthForm } from '../UserAuthForm';
 import { SupabaseBridge } from '../SupabaseBridge';
@@ -16,7 +18,7 @@ export const metadata = {
 export default async function Page({
   searchParams,
 }: {
-  searchParams?: { from?: string };
+  searchParams?: { from?: string; error?: string };
 }) {
   // S437 (Commander: "makes me sign in every single time"): an already-signed-in
   // user landing on /login (every main-site door routes through here) goes
@@ -30,10 +32,26 @@ export default async function Page({
     const safe = !!from && from.startsWith('/') && !from.startsWith('//') && !from.startsWith('/\\');
     redirect(safe ? from! : '/feed');
   }
-  return page();
+
+  // WO-gate-funnel-tracking (S487): the door renders = step 1. An OAuth attempt
+  // that died lands back here with ?error= — that's the invisible-break signal
+  // the S485 lobby bug hid for a month. Both awaited (fast insert), both
+  // swallow failures inside logFunnel.
+  const ua = headers().get('user-agent');
+  const webview = isWebviewUA(ua);
+  const userKey = cookies().get('fk')?.value ?? null;
+  await logFunnel('gate_view', {
+    userKey,
+    props: { from: searchParams?.from ?? null, webview, ua: ua?.slice(0, 160) ?? null },
+  });
+  if (searchParams?.error) {
+    await logFunnel('auth_error', { userKey, props: { code: searchParams.error, webview } });
+  }
+
+  return page(webview);
 }
 
-function page() {
+function page(webview = false) {
   return (
     <>
       {/* Logo / Brand */}
@@ -79,6 +97,17 @@ function page() {
           </>
         )}
       </div>
+
+      {/* In-app browsers (FB/IG/TikTok/Discord) hard-block Google OAuth with
+          disallowed_useragent — and shared invite links open in exactly these.
+          Warn + steer to quick-entry instead of letting them hit a doomed button. */}
+      {webview && (
+        <div className="mb-4 rounded-lg border border-warning/30 bg-warning/10 p-3 text-center text-xs leading-relaxed text-card-foreground">
+          You&apos;re inside an app&apos;s built-in browser, where Google sign-in is blocked.
+          Just type a name below to jump in — or tap the ⋯ menu and choose{' '}
+          <span className="font-semibold">Open in browser</span> to use Google/GitHub.
+        </div>
+      )}
 
       <InviteOnlyBanner />
       <SupabaseBridge />

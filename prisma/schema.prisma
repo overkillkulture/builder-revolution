@@ -81,6 +81,31 @@ model User {
   role               String    @default("user")
   status             String    @default("active")
 
+  // WO-gate-funnel-tracking (S487): the table shipped WITHOUT createdAt — signup
+  // dates were only recoverable by decoding cuid timestamps (S485). Additive;
+  // pre-existing rows are backfilled from their cuid at migration time.
+  createdAt          DateTime  @default(now())
+
+  @@schema("commsunity")
+}
+
+// WO-gate-funnel-tracking (S487): server-side funnel instrumentation for the
+// Main Chat gate. The S485 blindness: 30 days = 29 arrivals -> 25 stuck guests ->
+// 0 verified -> 0 messages, and nobody could see it. Every write is server-side
+// (never frontend-only) and fire-and-forget — a funnel failure must never break
+// the thing it measures. userKey = anonymous `fk` cookie (set in middleware),
+// userId once known; the report joins both.
+model FunnelEvent {
+  id      Int      @id @default(autoincrement())
+  ts      DateTime @default(now())
+  userKey String?
+  userId  String?
+  event   String
+  step    Int?
+  props   Json?
+
+  @@index([event, ts])
+  @@index([userId])
   @@schema("commsunity")
 }
 
