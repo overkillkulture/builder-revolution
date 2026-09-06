@@ -24,6 +24,69 @@
   }
 }
 
+/* chatscope dark paint. The kit ships white defaults, so every element we
+   don't inline-style (placeholder tiles like "No conversations yet", hover
+   states, the composer bar, message bubbles) flashes white inside our dark
+   chat — the "Fisher-Price" seams. Paint the whole kit to the ARAYA palette
+   once, here, instead of chasing inline styles per component. */
+.cs-conversation,
+.cs-conversation--active {
+  background-color: transparent;
+}
+.cs-conversation:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+.cs-conversation__name {
+  color: #dceae6;
+}
+.cs-conversation__info,
+.cs-conversation__last-activity-time {
+  color: #6a8a7a;
+}
+.cs-conversation-list,
+.cs-sidebar.cs-sidebar--left,
+.cs-sidebar.cs-sidebar--right {
+  background-color: #0e161c;
+}
+.cs-message--incoming .cs-message__content {
+  background-color: #1a1c24;
+  color: #eef1f6;
+}
+.cs-message--outgoing .cs-message__content {
+  background-color: rgba(14, 125, 144, 0.45);
+  color: #eef1f6;
+}
+.cs-message__sender-name {
+  color: #9aa3b2;
+}
+.cs-message__sent-time {
+  color: #6a8a7a;
+}
+.cs-message-input {
+  background-color: transparent;
+}
+.cs-message-input__content-editor-wrapper,
+.cs-message-input__content-editor {
+  background-color: #12141a;
+  color: #eef1f6;
+}
+.cs-message-input__content-editor-wrapper {
+  border: 1px solid rgba(20, 160, 184, 0.25);
+}
+.cs-message-input__content-editor[data-placeholder]:empty::before {
+  color: #9aa3b2;
+}
+.cs-button--send,
+.cs-button--attachment {
+  color: #14a0b8;
+}
+.cs-typing-indicator {
+  background-color: transparent;
+}
+.cs-typing-indicator__text {
+  color: #9aa3b2;
+}
+
 @layer base {
   /* Builder Revolution — ARAYA palette (graphite / teal / van-green).
      Matches components/araya-brand.css on the main platform so the seam
