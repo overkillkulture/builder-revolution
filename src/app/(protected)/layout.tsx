@@ -1,6 +1,6 @@
 import { MenuBar } from '@/components/MenuBar';
 import { MobileHeader } from '@/components/MobileHeader';
-import { ResponsiveContainer } from '@/components/ui/ResponsiveContainer';
+import { PageContainer } from '@/components/ui/PageContainer';
 import { useCheckIfRequiredFieldsArePopulated } from '@/hooks/useCheckIfRequiredFieldsArePopulated';
 import { getServerUser } from '@/lib/getServerUser';
 import { redirect } from 'next/navigation';
@@ -35,7 +35,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
       <MobileHeader />
       <MenuBar />
 
-      <ResponsiveContainer className="pb-20 md:pb-4">{children}</ResponsiveContainer>
+      <PageContainer>{children}</PageContainer>
       {/* Single bug reporter is the global public/bug-button.js (routes to GitHub consciousness-bugs +
           inbox + #bugs). BugReporter.tsx removed S436 — it was a 2nd floating button writing only /api/bugs. */}
     </div>

@@ -5,6 +5,7 @@ import { useSessionUserData } from '@/hooks/useSessionUserData';
 import { useNotificationsCountQuery } from '@/hooks/queries/useNotificationsCountQuery';
 import { useCreatePostModal } from '@/hooks/useCreatePostModal';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useCallback } from 'react';
 import { LogoText } from './LogoText';
 import { MenuBarItem } from './MenuBarItem';
@@ -22,6 +23,11 @@ const ROOMS = [
 
 export function MenuBar() {
   const [user] = useSessionUserData();
+  const pathname = usePathname();
+  // /main is the Discord-shaped chat: its own thin server rail carries
+  // navigation, so the 200px desktop menu would just re-pinch the chat
+  // (WO-main-chat-discord-simplify). Mobile bottom bar stays everywhere.
+  const onMainChat = pathname === '/main';
   const isLoggedIn = !!user;
   const username = user?.username || 'user-not-found';
   const { data: notificationCount } = useNotificationsCountQuery();
@@ -74,8 +80,8 @@ export function MenuBar() {
         ))}
       </div>
 
-      {/* Desktop sidebar */}
-      <div className="hidden md:sticky md:top-0 md:flex md:h-screen md:w-[200px] md:flex-shrink-0 md:flex-col md:items-start md:overflow-y-auto md:border-r md:border-border/20 md:p-3">
+      {/* Desktop sidebar — hidden on /main (the chat's server rail replaces it) */}
+      <div className={`hidden md:sticky md:top-0 md:h-screen md:w-[200px] md:flex-shrink-0 md:flex-col md:items-start md:overflow-y-auto md:border-r md:border-border/20 md:p-3 ${onMainChat ? '' : 'md:flex'}`}>
         <Link href={isLoggedIn ? '/main' : '/feed'} title="Home" className="mb-1 flex items-center gap-2">
           <Feather className="h-8 w-8 stroke-primary" />
           <LogoText className="text-xl" />
