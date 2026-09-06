@@ -1,4 +1,5 @@
 import { getServerUser } from '@/lib/getServerUser';
+import { logFunnel } from '@/lib/funnel';
 import prisma from '@/lib/prisma/prisma';
 import {
   maybeRespondAsArayaInChat,
@@ -115,6 +116,17 @@ export async function POST(
       },
     },
   });
+
+  // Funnel finish line (WO-gate-funnel-tracking): the user's FIRST message ever.
+  // Two cheap indexed reads; take:2 instead of a full count.
+  const priorMessages = await prisma.message.findMany({
+    where: { senderId: user.id },
+    select: { id: true },
+    take: 2,
+  });
+  if (priorMessages.length === 1) {
+    await logFunnel('first_message', { userId: user.id, props: { conversationId } });
+  }
 
   // Update conversation timestamp
   await prisma.conversation.update({

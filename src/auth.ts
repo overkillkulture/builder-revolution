@@ -3,6 +3,7 @@ import Credentials from 'next-auth/providers/credentials';
 import authConfig from '@/auth.config';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import prisma from '@/lib/prisma/prisma';
+import { logFunnel } from '@/lib/funnel';
 
 // S432 BG-5 step 1 (identity bridge) — the main site (100xbuilder.io) issues
 // Supabase Auth sessions; this app has its own separate login. A builder
@@ -131,6 +132,9 @@ export const {
           data: { username: uname, name: isEmail ? guestUsername : input, email: `${uname}@community.local` },
         });
 
+        // Funnel step 2 — a guest made it through the door (WO-gate-funnel-tracking).
+        await logFunnel('guest_enter', { userId: user.id, props: { username: uname } });
+
         return { id: user.id, name: user.name, email: user.email };
       },
     }),
@@ -175,6 +179,18 @@ export const {
     }),
   ],
   adapter: PrismaAdapter(prisma),
+  // WO-gate-funnel-tracking (S487): step 7 — a sign-in COMPLETED (any provider;
+  // the report splits by props.provider). This is the Auth.js success event, so
+  // it fires exactly when a session is actually issued — the truth the S485
+  // lobby-linking bug hid (buttons "worked", sessions never happened).
+  events: {
+    async signIn({ user, account }) {
+      await logFunnel('auth_complete', {
+        userId: user?.id ?? null,
+        props: { provider: account?.provider ?? 'unknown' },
+      });
+    },
+  },
   session: {
     strategy: 'jwt',
     // S437 (Commander: "makes me sign in every single time"): sessions live 90
