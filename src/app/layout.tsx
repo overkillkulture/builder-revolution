@@ -7,6 +7,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { Inter } from 'next/font/google';
 import { cn } from '@/lib/cn';
 import { Providers } from '@/components/Providers';
+import { VisitorKey } from '@/components/VisitorKey';
 import { auth } from '@/auth';
 import React from 'react';
 
@@ -48,7 +49,10 @@ export default async function Layout({ children }: { children: React.ReactNode }
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
       </head>
       <body className={cn('bg-background text-foreground', inter.className)}>
-        <Providers session={session}>{children}</Providers>
+        <Providers session={session}>
+          <VisitorKey />
+          {children}
+        </Providers>
         <script src="/bug-button.js" defer />
       </body>
     </html>
