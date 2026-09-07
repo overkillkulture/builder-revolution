@@ -34,10 +34,13 @@
   const css = `
     .bug-btn {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
-      width: 56px;
-      height: 56px;
+      /* Mid-right edge: clear of the chat composer's send button (bottom-right)
+         and the room header's Video Call button (top-right). Bug reports #904/#906. */
+      top: calc(50% - 24px);
+      bottom: auto;
+      right: 12px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
       border: 2px solid rgba(255,255,255,0.15);
@@ -311,12 +314,13 @@
         max-height: 95vh;
       }
       .bug-btn {
-        bottom: 88px;
-        right: 16px;
+        top: calc(50% - 22px);
+        bottom: auto;
+        right: 8px;
         left: auto;
-        width: 48px;
-        height: 48px;
-        font-size: 22px;
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
       }
     }
   `;
