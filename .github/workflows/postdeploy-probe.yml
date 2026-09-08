@@ -1,0 +1,54 @@
+# WO-comms-deploy-probe (S493) — post-deploy probe: no more silent 8-minute outages.
+# After any push to main (Railway auto-deploys), wait for the deploy, then probe the
+# three public routes on chat.100xbuilder.io. Any bad status → red X + GitHub's
+# failure notification to the committer within ~5 minutes of the merge.
+# Zero secrets: public-route probes only (succession law — works when CP3 is off).
+# Manual test: Actions → post-deploy-probe → Run workflow with paths=/definitely-404
+# to demonstrate the red X (the WO's acceptance test).
+name: post-deploy-probe
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Base URL to probe
+        default: https://chat.100xbuilder.io
+      paths:
+        description: Comma-separated paths
+        default: /login,/feed,/main
+      wait:
+        description: Seconds to wait before probing
+        default: "0"
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Wait for Railway deploy
+        run: |
+          W="${{ github.event.inputs.wait }}"
+          if [ "${{ github.event_name }}" = "push" ]; then W=180; fi
+          echo "waiting ${W:-0}s for the deploy to settle"
+          sleep "${W:-0}"
+      - name: Probe routes
+        run: |
+          BASE="${{ github.event.inputs.base }}"
+          PATHS="${{ github.event.inputs.paths }}"
+          BASE="${BASE:-https://chat.100xbuilder.io}"
+          PATHS="${PATHS:-/login,/feed,/main}"
+          fail=0
+          for p in ${PATHS//,/ }; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$BASE$p" || echo 000)
+            echo "$BASE$p -> $code"
+            case "$code" in
+              200|301|302|303|307|308) ;;
+              *) echo "::error::probe failed: $p returned $code"; fail=1 ;;
+            esac
+          done
+          if [ "$fail" != 0 ]; then
+            echo "::error::POST-DEPLOY PROBE FAILED — Main Chat may be DOWN after this merge. Check Railway; last-good commit is the parent of ${{ github.sha }}."
+            exit 1
+          fi
+          echo "all routes healthy"
