@@ -74,8 +74,15 @@ export async function maybeRespondAsArayaInChat({
     }
 
     const data = await response.json();
-    const arayaReply =
+    let arayaReply =
       data.response || data.message || data.reply || 'I hear you. Let me think on that.';
+
+    // #920 output-safety: the reply is an LLM response to a user-supplied message
+    // (which may carry a slur username/text). Never publish a slur as ARAYA — drop
+    // to a neutral line if one slips through.
+    if (replyHasSlur(arayaReply)) {
+      arayaReply = 'I hear you. Let me think on that.';
+    }
 
     await prisma.message.create({
       data: {
@@ -118,13 +125,64 @@ async function resolveTownSquareId(): Promise<number | null> {
 }
 
 /**
+ * Slur / offensive-name guard (bug #920, promoted from araya_bugs #149).
+ * A user whose displayed NAME was a racial slur got greeted "Hey <slur> — ARAYA
+ * here, the house AI…" because the raw display name was interpolated into the
+ * welcome. ARAYA must never repeat, echo, or address anyone by a slur — the house
+ * AI parroting one to a room of invited strangers is a brand+safety P0.
+ *
+ * Deliberately narrow: only the most severe, unambiguous slurs, so we don't hit
+ * the Scunthorpe problem (flagging innocent substrings). Two matchers:
+ *   - `nameIsSlur`  — collapses the WHOLE string (leet + spacing stripped) then
+ *     tests, because a display name is short and evasion like "n i g g e r" or
+ *     "n1gg3r" must be caught. False positives on a real name are near-impossible
+ *     and merely downgrade the greeting to "there", which is harmless.
+ *   - `replyHasSlur` — for free-text bodies, tests each whitespace token ANCHORED
+ *     so a word that merely contains a slur substring (e.g. "conspicuous") is not
+ *     flagged; only spacing/leet WITHIN a token is normalized.
+ */
+const SLUR_CORES: RegExp[] = [
+  /n+i+g+(?:e+r|a+)s?/, // n-word + the -a variant
+  /f+a+g+(?:o+t+)?s?/, // f-slur
+  /k+i+k+e+s?/,
+  /c+h+i+n+k+s?/,
+  /w+e+t+b+a+c+k+s?/,
+  /t+r+a+n+n+y+/,
+];
+function deLeet(s: string): string {
+  return (s || '')
+    .toLowerCase()
+    .replace(/0/g, 'o')
+    .replace(/[1!|]/g, 'i')
+    .replace(/3/g, 'e')
+    .replace(/[4@]/g, 'a')
+    .replace(/[5$]/g, 's')
+    .replace(/7/g, 't');
+}
+function nameIsSlur(name: string): boolean {
+  const collapsed = deLeet(name).replace(/[^a-z]/g, '');
+  return !!collapsed && SLUR_CORES.some((re) => re.test(collapsed));
+}
+function replyHasSlur(text: string): boolean {
+  return deLeet(text)
+    .split(/\s+/)
+    .map((tok) => tok.replace(/[^a-z]/g, ''))
+    .some((tok) => !!tok && SLUR_CORES.some((re) => new RegExp('^' + re.source + '$').test(tok)));
+}
+/** Address a newcomer safely: never interpolate a slur username into a greeting. */
+function safeAddress(displayName: string): string {
+  return nameIsSlur(displayName) ? 'there' : displayName;
+}
+
+/**
  * Output-safety guard for ARAYA's endpoint reply BEFORE it is auto-posted to a
- * public room. Two reasons this is not optional: (1) the reply comes from an LLM
+ * public room. Three reasons this is not optional: (1) the reply comes from an LLM
  * that is only *prompted* to behave, not guaranteed; (2) the newcomer's first
- * message is interpolated into that prompt, so a hostile first post could try to
- * steer the reply (prompt injection) — and whatever comes back is published as
- * ARAYA to real strangers. A reply is accepted only if it self-identifies as the
- * AI AND makes no money/outcome promise; otherwise we drop to the honest template.
+ * message + name are interpolated into that prompt, so a hostile first post/name
+ * could try to steer the reply (prompt injection) — and whatever comes back is
+ * published as ARAYA to real strangers; (3) a slur username could be echoed back.
+ * A reply is accepted only if it self-identifies as the AI, makes no money/outcome
+ * promise, AND carries no slur; otherwise we drop to the honest template.
  */
 function isSafeWelcome(text: string): boolean {
   const t = text.toLowerCase();
@@ -133,7 +191,7 @@ function isSafeWelcome(text: string): boolean {
     /\bguarantee\b|\bpromise\b|get rich|passive income|double your|\bprofit\b|\breturns?\b|make (you )?\$|\$\s?\d|will (make|earn) you|risk-?free|financial freedom/.test(
       t,
     );
-  return selfLabels && !promises;
+  return selfLabels && !promises && !replyHasSlur(text);
 }
 
 /**
@@ -144,8 +202,12 @@ function isSafeWelcome(text: string): boolean {
  * Never makes money or outcome promises.
  */
 async function composeWelcome(displayName: string, firstMessage: string): Promise<string> {
+  // #920: never interpolate a slur username into a greeting. safeName is neutral
+  // ("there") when the raw name is offensive; the fallback and the LLM prompt both
+  // use it, so ARAYA cannot address anyone by a slur even if the endpoint obliges.
+  const safeName = safeAddress(displayName);
   const fallback =
-    `Hey ${displayName} — ARAYA here, the house AI that keeps this room warm. ` +
+    `Hey ${safeName} — ARAYA here, the house AI that keeps this room warm. ` +
     `Real builders read this channel, so you're not shouting into the void. ` +
     `What are you building or working toward right now? Drop a line and someone will pick it up.`;
 
@@ -154,7 +216,7 @@ async function composeWelcome(displayName: string, firstMessage: string): Promis
     const timeout = setTimeout(() => controller.abort(), 8000);
     const prompt =
       `A new person just posted their FIRST message in the community town-square chat. ` +
-      `Their name is "${displayName}" and they wrote: "${firstMessage}". ` +
+      `Their name is "${safeName}" and they wrote: "${firstMessage}". ` +
       `Write ONE short, warm, specific welcome (2 sentences max) as ARAYA, the house AI. ` +
       `Identify yourself as the house AI, greet them by name, ask exactly ONE question about ` +
       `what they're building or need, and invite them to reply here. No money or outcome promises, no emojis-only fluff.`;
