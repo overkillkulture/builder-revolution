@@ -1,10 +1,10 @@
-# COMMS-UNITY
+# Builder Revolution — the Build Guild chat
 
-**Communications + Unity + Community**
+The open-source community platform behind the **Builder Revolution**. It's where builders of every kind — developers, welders, lawyers, artists, systems thinkers — connect, share what they're building, and level up together. Three main rooms: **Build Guild** (developers), **Case Builder** (legal), and **Builder Revolution** (catch-all).
 
-An open source social platform built for the Builder Revolution. This is a fort. Help us turn it into a castle.
+**Live:** [chat.100xbuilder.io](https://chat.100xbuilder.io)
 
-**Live:** [comms-unity-production.up.railway.app](https://comms-unity-production.up.railway.app)
+It's an MIT-licensed fork of [Munia](https://github.com/leandronorcio/munia), rebuilt for builders. Fork it, build a feature, open a PR.
 
 ---
 
