@@ -88,6 +88,13 @@ npm run dev
 # Open http://localhost:3002
 ```
 
+## Database changes
+
+`npm run build` generates the Prisma client and builds the app; it never changes a
+database. Apply reviewed production migrations explicitly with `npm run prisma:deploy`
+from an approved operator environment. Do not use `prisma db push --accept-data-loss`
+against a shared or production database.
+
 ## How to Contribute
 
 1. **Fork this repo**
